@@ -4,6 +4,7 @@ import 'package:test_client/test_client.dart';
 import 'package:test_flutter/main.dart';
 
 import '../controllers/router_controller.dart';
+import '../helpers/router.dart';
 import 'chat_screen.dart';
 
 class ListUsers extends StatefulWidget {
@@ -42,15 +43,8 @@ class _ListUsersState extends State<ListUsers> {
         itemCount: users.length,
         itemBuilder: (BuildContext context, int index) {
           return GestureDetector(
-            onTap: () => Navigator.pushAndRemoveUntil<dynamic>(
-              context,
-              MaterialPageRoute<dynamic>(
-                builder: (BuildContext context) =>
-                    ChatScreen(user: widget.user, to: users[index]),
-              ),
-              (route) =>
-                  false, //if you want to disable back feature set to false
-            ),
+            onTap: () => move(context,true,  ChatScreen(user: widget.user, to: users[index]),),
+         
             child: Column(
               children: [
                 Padding(
@@ -65,4 +59,6 @@ class _ListUsersState extends State<ListUsers> {
       ),
     );
   }
+  
+
 }

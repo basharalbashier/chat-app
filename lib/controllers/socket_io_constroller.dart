@@ -34,12 +34,12 @@ class ConnectionDisplay extends StatelessWidget {
         break;
     }
 
-    return        Container(
-          padding: const EdgeInsets.all(8),
-          color: connectionStateColor,
-          child: Text(
-            connectionStateDescription,
-            style: const TextStyle(color: Colors.white),
+    return        CircleAvatar(radius: 5,
+          // padding: const EdgeInsets.all(8),
+          backgroundColor: connectionStateColor,
+          child: const Text(''
+            // connectionStateDescription,
+           , style: TextStyle(color: Colors.white),
           ),
         );
   }

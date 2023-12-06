@@ -1,19 +1,16 @@
-import 'dart:io';
-
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_bubble/chat_bubble.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
+import 'package:test_flutter/helpers/router.dart';
 import 'package:test_flutter/modules/message.dart';
 import 'package:flutter/foundation.dart' as foundation;
 import '../controllers/socket_io_constroller.dart';
-import '../helpers/format_time.dart';
+import '../helpers/find_message.dart';
 import '../main.dart';
-
-// part '../modules/user.dart' as ;
-import 'converstionScreen.dart';
+import '../widgets/message_widget.dart';
+import 'call_screen.dart';
 import 'list_users.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -46,7 +43,7 @@ class _MyHomePageState extends State<ChatScreen> {
       },
     );
     connectionHandler.connect();
-_listenToUpdates();
+    _listenToUpdates();
     _controller = ScrollController();
     super.initState();
   }
@@ -66,11 +63,11 @@ _listenToUpdates();
   Future<void> _listenToUpdates() async {
     await for (var update in innerClient!.messageEndPoint.stream) {
       if (update is Message) {
-      if(update.id==null || getReplay(update.id!).id==0){
+        if (update.id == null || getReplay(update.id!).id == 0) {
           setState(() {
-          MessagesModel.messages.add(update);
-        });
-      }
+            MessagesModel.messages.add(update);
+          });
+        }
       }
     }
   }
@@ -108,70 +105,73 @@ _listenToUpdates();
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
-        leading: IconButton(
-            onPressed: () => Navigator.pushAndRemoveUntil<dynamic>(
-                  context,
-                  MaterialPageRoute<dynamic>(
-                    builder: (BuildContext context) => ListUsers(
-                      user: widget.user,
-                    ),
-                  ),
-                  (route) =>
-                      false, //if you want to disable back feature set to false
-                ),
-            icon: const Icon(Icons.arrow_back)),
         // backgroundColor: Colors.deepOrangeAccent,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TextButton(
-                onPressed: () => onRole(),
-                child: Text(
-                  widget.to.name,
-                  style: const TextStyle(color: Colors.white),
-                )),
-            ConnectionDisplay(
-              connectionState: connectionHandler.status,
+            Stack(
+              fit: StackFit.loose,
+              children: [
+                TextButton(
+                    onPressed: () => onRole(),
+                    child: Text(
+                      widget.to.name,
+                      style: const TextStyle(color: Colors.white),
+                    )),
+                Positioned(
+                  right: 0,
+                  child: ConnectionDisplay(
+                    connectionState: connectionHandler.status,
+                  ),
+                ),
+              ],
             ),
+            Row(
+              children: [
+                IconButton(onPressed: () => move(context, true, CallScreen(user: widget.user,to: widget.to,)), icon: Icon(Icons.call)),
+                IconButton(onPressed: () => {}, icon: Icon(Icons.video_call))
+              ],
+            )
           ],
         ),
       ),
       body: Column(
         children: [
-          Expanded(child:     ListView.builder(
-            controller: _controller,
-            scrollDirection: Axis.vertical,
-            shrinkWrap: true,
-            reverse: true,
-            cacheExtent: 1000,
-            itemCount: MessagesModel.messages.length,
-            itemBuilder: (BuildContext context, int index) {
-              Message message = MessagesModel
-                  .messages[MessagesModel.messages.length - index - 1];
+          Expanded(
+            child: ListView.builder(
+              controller: _controller,
+              scrollDirection: Axis.vertical,
+              shrinkWrap: true,
+              reverse: true,
+              cacheExtent: 1000,
+              itemCount: MessagesModel.messages.length,
+              itemBuilder: (BuildContext context, int index) {
+                Message message = MessagesModel
+                    .messages[MessagesModel.messages.length - index - 1];
 
-              // print(message);
-              return Dismissible(
-                  confirmDismiss: (direction) async {
-                    setState(() {
-                      replyMessage = message;
-                    });
-                    return await false;
-                  },
+                // print(message);
+                return Dismissible(
+                    confirmDismiss: (direction) async {
+                      setState(() {
+                        replyMessage = message;
+                      });
+                      return false;
+                    },
 
-                  //   // Then show a snackbar.
-                  //   ScaffoldMessenger.of(context)
-                  //       .showSnackBar(SnackBar(content: Text('dismissed')));
-                  // },
-                  key: Key(message.toString()),
-                  child: (message.sender == widget.user.id)
-                      ? myMessage(message, true, size)
-                      : myMessage(message, false, size));
-            },
+                    //   // Then show a snackbar.
+                    //   ScaffoldMessenger.of(context)
+                    //       .showSnackBar(SnackBar(content: Text('dismissed')));
+                    // },
+                    key: Key(message.toString()),
+                    child: (message.sender == widget.user.id)
+                        ? myMessage(message, true, size)
+                        : myMessage(message, false, size));
+              },
+            ),
           ),
-      ),
           Container(
               // height: size!.height / (replyMessage != null ? 3 : 6),
-              color: Colors.teal.withOpacity(.7),
+              color: Colors.white.withOpacity(.7),
               child: Column(
                 children: [
                   Visibility(
@@ -179,17 +179,15 @@ _listenToUpdates();
                       child: Column(
                         children: [
                           Padding(
-                            padding:
-                                const EdgeInsets.only(right: 10, left: 10),
+                            padding: const EdgeInsets.only(right: 10, left: 10),
                             child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
                                   "Reply for",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                      color: Colors.grey),
                                 ),
                                 GestureDetector(
                                   child: const Icon(Icons.cancel),
@@ -201,20 +199,20 @@ _listenToUpdates();
                           ),
                           const Padding(
                             padding: EdgeInsets.only(left: 10, right: 10),
-                            child: Divider(color: Colors.white),
+                            child: Divider(color: Colors.grey),
                           ),
                           Row(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 10, right: 10),
+                                padding:
+                                    const EdgeInsets.only(left: 10, right: 10),
                                 child: SizedBox(
                                   width: size!.width - 20,
                                   child: Text(
                                     replyMessage?.content ?? "",
                                     style: const TextStyle(
                                         // fontWeight: FontWeight.bold,
-                                        color: Colors.white),
+                                        color: Colors.grey),
                                     overflow: TextOverflow.ellipsis,
                                     softWrap: true,
                                   ),
@@ -236,14 +234,13 @@ _listenToUpdates();
                           },
                           icon: const Icon(
                             Icons.emoji_emotions,
-                            color: Colors.white,
+                            color: Colors.deepOrange,
                           ),
                         ),
                       ),
                       Expanded(
                         child: Padding(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8.0),
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: TextField(
                               onSubmitted: ((value) => _sendMessage()),
                               controller: _messageController,
@@ -270,7 +267,7 @@ _listenToUpdates();
                             onPressed: () => _sendMessage(),
                             icon: const Icon(
                               Icons.send,
-                              color: Colors.white,
+                              color: Colors.deepOrange,
                             )),
                       )
                     ],
@@ -288,8 +285,7 @@ _listenToUpdates();
                     columns: 7,
                     // Issue: https://github.com/flutter/flutter/issues/28894
                     emojiSizeMax: 32 *
-                        (foundation.defaultTargetPlatform ==
-                                TargetPlatform.iOS
+                        (foundation.defaultTargetPlatform == TargetPlatform.iOS
                             ? 1.30
                             : 1.0),
                     verticalSpacing: 0,
@@ -297,10 +293,10 @@ _listenToUpdates();
                     gridPadding: EdgeInsets.zero,
                     // initCategory: Category.RECENT,
                     bgColor: const Color(0xFFF2F2F2),
-                    indicatorColor: Colors.teal,
+                    indicatorColor: Colors.deepOrange,
                     iconColor: Colors.grey,
-                    iconColorSelected: Colors.teal,
-                    backspaceColor: Colors.teal,
+                    iconColorSelected: Colors.deepOrange,
+                    backspaceColor: Colors.deepOrange,
                     skinToneDialogBgColor: Colors.white,
                     skinToneIndicatorColor: Colors.grey,
                     enableSkinTones: true,
@@ -331,77 +327,4 @@ _listenToUpdates();
       ..selection = TextSelection.fromPosition(
           TextPosition(offset: _messageController.text.length));
   }
-}
-
-Widget myMessage(Message message, bool isMe, size) {
-  return ChatBubble(
-    clipper: ChatBubbleClipper1(
-        type: isMe ? BubbleType.sendBubble : BubbleType.receiverBubble),
-    alignment: isMe ? Alignment.topRight : Alignment.topLeft,
-    margin: const EdgeInsets.only(top: 5, bottom: 5),
-    backGroundColor: isMe ? Colors.yellow[100] : Colors.grey[100],
-    child: Container(
-      constraints: BoxConstraints(maxWidth: size!.width * 0.7),
-      child: Column(
-        crossAxisAlignment:
-            !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-        children: [
-          message.replayto != null
-              ? replayWidget(isMe, message.replayto, size)
-              : Visibility(
-                  visible: false,
-                  child: Container(),
-                ),
-          Text(amOrPm(message.sent_at.toString(), false),
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
-          Text(message.content,
-              style: const TextStyle(color: Colors.black, fontSize: 16))
-        ],
-      ),
-    ),
-  );
-}
-
-Widget replayWidget(bool isMe, int? replayto, size) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      Container(
-        width: isMe ? 0 : 2,
-        color: Colors.teal,
-        child: const Text(''),
-      ),
-      Container(
-          decoration: BoxDecoration(
-              color: Colors.grey.shade200.withOpacity(.7),
-              borderRadius: const BorderRadius.all(Radius.circular(5))),
-          child: Padding(
-            padding: const EdgeInsets.all(1.0),
-            child: SizedBox(
-              width: size.width / 5,
-              child: Text(
-                getReplay(replayto!).content,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
-              ),
-            ),
-          )),
-      Container(
-        width: isMe ? 2 : 0,
-        color: Colors.teal,
-        child: const Text(''),
-      ),
-    ],
-  );
-}
-
-Message getReplay(int id) {
-  Message message;
-  try {
-    message = MessagesModel.messages.singleWhere((element) => element.id == id);
-  } catch (e) {
-    return Message(id: 0,content: "unable to fine message", sender: 0, seen_by: []);
-  }
-  return message;
 }
