@@ -1,55 +1,119 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:get/get.dart';
 import 'package:test_client/test_client.dart';
-import 'package:test_flutter/main.dart';
-
-import '../controllers/router_controller.dart';
+import 'package:test_flutter/modules/peer_client.dart';
 import '../helpers/router.dart';
+import '../modules/users.dart';
 import 'chat_screen.dart';
 
-class ListUsers extends StatefulWidget {
-  const ListUsers({super.key, required this.user});
-  final User user;
+class WhoYouAre extends StatefulWidget {
+  const WhoYouAre({
+    super.key,
+  });
   @override
-  State<ListUsers> createState() => _ListUsersState();
+  State<WhoYouAre> createState() => _ListUsersState();
 }
 
-class _ListUsersState extends State<ListUsers> {
-  getAllUsers() async {
-    try {
-      var result = await client.userEndPoint.getAllUsers();
-      for (var user in result) {
-        if (user.id != widget.user.id) {
-          setState(() => users.add(user));
-        }
-      }
-    } catch (e) {}
-  }
-
-  List<User> users = [];
+class _ListUsersState extends State<WhoYouAre> {
   @override
   void initState() {
-    getAllUsers();
+    // getAllUsers();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final Users u = Get.put(Users());
+
     return Scaffold(
+        appBar: AppBar(
+          title: const Text('Who you are?'),
+        ),
+        body: Obx(
+          () => ListView.builder(
+            scrollDirection: Axis.vertical,
+            shrinkWrap: true,
+            cacheExtent: 1000,
+            itemCount: u.users.length,
+            itemBuilder: (BuildContext context, int index) {
+              return GestureDetector(
+                onTap: () async {
+                  var me = u.users[index];
+                  await PeerClient.peerClient.init(me);
+                  setState(() {
+                    u.users.removeWhere((element) => me.id == element.id);
+                  });
+                  if (!PeerClient.peerClient.peer!.disconnected) {
+                    Get.to(ListUsers(
+                      user: me,
+                      // peer: peer,
+                    ));
+                  }
+                },
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(u.users[index].name),
+                    ),
+                    const Divider()
+                  ],
+                ),
+              );
+            },
+          ),
+        ));
+  }
+}
+
+class ListUsers extends StatelessWidget {
+  ListUsers({
+    super.key,
+    required this.user,
+  });
+  final User user;
+  final Users u = Get.find();
+
+  // final Peer peer;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('I am ${user.name}'),
+      ),
       body: ListView.builder(
         scrollDirection: Axis.vertical,
         shrinkWrap: true,
         cacheExtent: 1000,
-        itemCount: users.length,
+        itemCount: u.users.length,
         itemBuilder: (BuildContext context, int index) {
           return GestureDetector(
-            onTap: () => move(context,true,  ChatScreen(user: widget.user, to: users[index]),),
-         
+            onTap: () => move(
+              context,
+              true,
+              ChatScreen(
+                user: user,
+                to: u.users[index],
+                // peer: peer,
+              ),
+            ),
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(users[index].name),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(u.users[index].name),
+                      CircleAvatar(
+                        radius: 5,
+                        backgroundColor: u.users[index].status == null ||
+                                u.users[index].status == false
+                            ? Colors.pink
+                            : Colors.teal,
+                      )
+                    ],
+                  ),
                 ),
                 const Divider()
               ],
@@ -59,6 +123,4 @@ class _ListUsersState extends State<ListUsers> {
       ),
     );
   }
-  
-
 }

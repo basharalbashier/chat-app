@@ -46,6 +46,8 @@ dependencies:
   fluttertoast: ^8.2.4
   emoji_picker_flutter: ^1.6.3
   peerdart: ^0.5.2
+  flutter_webrtc: ^0.9.47
+  get: ^4.6.6
 
 dev_dependencies:
   flutter_lints: ^2.0.1

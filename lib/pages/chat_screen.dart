@@ -1,12 +1,15 @@
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:peerdart/peerdart.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
 import 'package:test_flutter/helpers/router.dart';
 import 'package:test_flutter/modules/message.dart';
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:test_flutter/modules/peer_client.dart';
 import '../controllers/socket_io_constroller.dart';
+import '../helpers/constant.dart';
 import '../helpers/find_message.dart';
 import '../main.dart';
 import '../widgets/message_widget.dart';
@@ -15,7 +18,7 @@ import 'list_users.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.user, required this.to});
-
+// final Peer peer;
   final User user;
   final User to;
 
@@ -45,6 +48,7 @@ class _MyHomePageState extends State<ChatScreen> {
     connectionHandler.connect();
     _listenToUpdates();
     _controller = ScrollController();
+ 
     super.initState();
   }
 
@@ -128,8 +132,28 @@ class _MyHomePageState extends State<ChatScreen> {
             ),
             Row(
               children: [
-                IconButton(onPressed: () => move(context, true, CallScreen(user: widget.user,to: widget.to,)), icon: Icon(Icons.call)),
-                IconButton(onPressed: () => {}, icon: Icon(Icons.video_call))
+                IconButton(
+                    onPressed: () => move(
+                        context,
+                        true,
+                        CallScreen(
+                          user: widget.user,
+                          to: widget.to,
+                          isVideo: false,
+                          // peer:widget.peer
+                        )),
+                    icon: const Icon(Icons.call)),
+                IconButton(
+                    onPressed: () => move(
+                        context,
+                        true,
+                        CallScreen(
+                          user: widget.user,
+                          to: widget.to,
+                          isVideo: true,
+                          // peer:widget.peer
+                        )),
+                    icon: const Icon(Icons.video_call))
               ],
             )
           ],

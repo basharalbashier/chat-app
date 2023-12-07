@@ -1,43 +1,40 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
 import 'package:test_client/test_client.dart';
 import 'package:flutter/material.dart';
+import 'package:test_flutter/modules/users.dart';
 import 'package:test_flutter/pages/list_users.dart';
-
-import 'modules/notification.dart';
-import 'pages/chat_screen.dart';
+final navigatorKey = GlobalKey<NavigatorState>();
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+// final BehaviorSubject<ReceivedNotification> didReceiveLocalNotificationSubject =
+//     BehaviorSubject<ReceivedNotification>();
 
-final BehaviorSubject<ReceivedNotification> didReceiveLocalNotificationSubject =
-    BehaviorSubject<ReceivedNotification>();
-
-final BehaviorSubject<String?> selectNotificationSubject =
-    BehaviorSubject<String?>();
-int id = kIsWeb ? 2 : 1;
-String name = DateTime.now().second.toString();
-String url = 'http://192.168.137.76:8080/';
-var client = Client(url);
+// final BehaviorSubject<String?> selectNotificationSubject =
+//     BehaviorSubject<String?>();
 String? selectedNotificationPayload;
+    final Users u= Get.put(Users());
 
-void main() async{
+void main() async {
+  u.init();
   WidgetsFlutterBinding.ensureInitialized();
 
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('launcher_icon');
-  final InitializationSettings initializationSettings =  InitializationSettings(
+  final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-      onSelectNotification: (String? payload) async {
-    if (payload != null) {
-      debugPrint('notification payload: $payload');
-    }
-    selectedNotificationPayload = payload;
-    selectNotificationSubject.add(payload);
-  });
+  //   await flutterLocalNotificationsPlugin.initialize(initializationSettings,
+  //     onSelectNotification: (String? payload) async {
+  //   if (payload != null) {
+  //     debugPrint('notification payload: $payload');
+  //   }
+  //   selectedNotificationPayload = payload;
+  //   // selectNotificationSubject.add(payload);
+  // });
   runApp(const MyApp());
 }
 
@@ -46,17 +43,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Serverpod Demo',
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,
       ),
+      navigatorKey: navigatorKey, // Setting a global key for navigator
+
       initialRoute: "/",
       routes: {
-        "/": (context) => ListUsers(
-              user: User(id: id, name: name),
-            ),
+        "/": (context) => const WhoYouAre(),
         // '/dataConnectionExample': (context) => const DataConnectionExample(),
       },
     );
