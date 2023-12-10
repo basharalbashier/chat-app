@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:test_client/test_client.dart';
 import 'package:flutter/material.dart';
 import 'package:test_flutter/modules/users.dart';
 import 'package:test_flutter/pages/list_users.dart';
+
 final navigatorKey = GlobalKey<NavigatorState>();
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -16,7 +15,7 @@ FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 // final BehaviorSubject<String?> selectNotificationSubject =
 //     BehaviorSubject<String?>();
 String? selectedNotificationPayload;
-    final Users u= Get.put(Users());
+final Users u = Get.put(Users());
 
 void main() async {
   u.init();
@@ -43,7 +42,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

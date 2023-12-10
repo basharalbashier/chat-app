@@ -4,13 +4,11 @@ import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
 import '../main.dart';
-import 'users.dart';
 
 class PeerClient {
   // const PeerClient({required this.user});
   PeerClient._();
   static final PeerClient peerClient = PeerClient._();
-    final Users u= Get.put(Users());
   Peer? peer;
   Future<void> init(User user) async {
     peer = Peer(

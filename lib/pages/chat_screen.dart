@@ -14,7 +14,6 @@ import '../helpers/find_message.dart';
 import '../main.dart';
 import '../widgets/message_widget.dart';
 import 'call_screen.dart';
-import 'list_users.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.user, required this.to});
@@ -35,7 +34,7 @@ class _MyHomePageState extends State<ChatScreen> {
   Client? innerClient;
   @override
   void initState() {
-    innerClient = Client("$url?id=${widget.user.id}&&to=${widget.to.id}/")
+    innerClient = Client("$url/chat/?id=${widget.user.id}&&to=${widget.to.id}/")
       ..connectivityMonitor = FlutterConnectivityMonitor();
     connectionHandler = StreamingConnectionHandler(
       client: innerClient!,
@@ -45,10 +44,11 @@ class _MyHomePageState extends State<ChatScreen> {
         }
       },
     );
+    // client.openStreamingConnection();
     connectionHandler.connect();
     _listenToUpdates();
     _controller = ScrollController();
- 
+
     super.initState();
   }
 
