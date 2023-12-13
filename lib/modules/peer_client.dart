@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as fwebrtc;
 import 'package:get/get.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
+import 'package:test_flutter/pages/call_screen.dart';
 import '../helpers/constant.dart';
 import '../main.dart';
+import '../pages/awn_call.dart';
 
 class PeerClient {
   // const PeerClient({required this.user});
   PeerClient._();
   static final PeerClient peerClient = PeerClient._();
   Peer? peer;
+  bool inCall = false;
+  User? me;
   Future<void> init(User user) async {
+    me = user;
     peer = Peer(
         id: user.id.toString(),
         options: PeerOptions(
@@ -19,27 +25,14 @@ class PeerClient {
             port: 9000,
             path: "/",
             debug: LogLevel.All));
-    peer!.on<MediaConnection>("call").listen((event) async {
-      await u
-          .getUser(int.parse(event.peer))
-          .then((value) => showMyDialog(value.name));
-
-      //  move(
-      //                   context,
-      //                   true,
-      //                   CallScreen(
-      //                     user: widget.user,
-      //                     to: widget.to,
-      //                     isVideo: true,
-      //                     // peer:widget.peer
-      //                   ));
-      //         ScaffoldMessenger.of(context)
-      //       .showSnackBar(SnackBar(content: Text(event.peer.toString())));
+    peer!.on<MediaConnection>("call").listen((call) async {
+      var user = u.getUser(int.tryParse(call.peer) ?? 0);
+      showMyDialog(user, call);
     });
   }
 }
 
-void showMyDialog(String text) {
+void showMyDialog(User user, MediaConnection call) {
   showDialog(
       context: navigatorKey.currentContext!,
       builder: (context) => Center(
@@ -47,7 +40,34 @@ void showMyDialog(String text) {
               // color: Colors.transparent,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text('$text is calling ..'),
+                child: Column(
+                  children: [
+                    Text('${user.name} is calling ..'),
+                    Row(
+                      children: [
+                        IconButton(
+                            onPressed: (() {
+                              // call.
+
+                              call.dispose();
+                              Navigator.of(context).pop();
+                            }),
+                            icon: Icon(Icons.call_end)),
+                        IconButton(
+                            onPressed: (() {
+                              Navigator.of(context).pop();
+                              Get.to(AwnCall(
+                                user: PeerClient.peerClient.me!,
+                                to: user,
+                                isVideo: false,
+                                call: call,
+                              ));
+                            }),
+                            icon: const Icon(Icons.call)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ));

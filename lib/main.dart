@@ -1,4 +1,4 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:test_flutter/modules/users.dart';
@@ -6,8 +6,8 @@ import 'package:test_flutter/pages/list_users.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+// FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+//     FlutterLocalNotificationsPlugin();
 
 // final BehaviorSubject<ReceivedNotification> didReceiveLocalNotificationSubject =
 //     BehaviorSubject<ReceivedNotification>();
@@ -21,11 +21,11 @@ void main() async {
   u.init();
   WidgetsFlutterBinding.ensureInitialized();
 
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('launcher_icon');
-  final InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
+  // const AndroidInitializationSettings initializationSettingsAndroid =
+  //     AndroidInitializationSettings('launcher_icon');
+  // final InitializationSettings initializationSettings = InitializationSettings(
+  //   android: initializationSettingsAndroid,
+  // );
   //   await flutterLocalNotificationsPlugin.initialize(initializationSettings,
   //     onSelectNotification: (String? payload) async {
   //   if (payload != null) {

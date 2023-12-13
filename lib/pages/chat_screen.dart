@@ -34,8 +34,9 @@ class _MyHomePageState extends State<ChatScreen> {
   Client? innerClient;
   @override
   void initState() {
-    innerClient = Client("$url/chat/?id=${widget.user.id}&&to=${widget.to.id}/")
-      ..connectivityMonitor = FlutterConnectivityMonitor();
+    innerClient =
+        Client("$url/?id=${widget.user.id}&&to=${widget.to.id}&&key=chat/")
+          ..connectivityMonitor = FlutterConnectivityMonitor();
     connectionHandler = StreamingConnectionHandler(
       client: innerClient!,
       listener: (connectionState) {

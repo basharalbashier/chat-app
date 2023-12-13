@@ -37,12 +37,12 @@ dependencies:
   sqflite: ^2.3.0
   path: any
   path_provider: any  # sqflite: ^2.3.0
-  flutter_local_notifications: ^16.1.0
+  # flutter_local_notifications: ^16.1.0
   ringtone_player: ^0.1.1
-  google_sign_in: ^6.1.6
+  # google_sign_in: ^6.1.6
   intl: ^0.18.1
   flutter_launcher_icons: ^0.13.1
-  flutter_app_badger: ^1.5.0
+  # flutter_app_badger: ^1.5.0
   fluttertoast: ^8.2.4
   emoji_picker_flutter: ^1.6.3
   peerdart: ^0.5.2

@@ -71,7 +71,7 @@ class Users extends GetxController {
   //   } catch (e) {}
   // }
 
-  Future<User> getUser(int id) async {
+  User getUser(int id) {
     User user;
     try {
       user = users.singleWhere((element) => element.id == id);

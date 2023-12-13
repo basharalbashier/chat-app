@@ -35,7 +35,7 @@ class WhoYouAre extends StatelessWidget {
                   await PeerClient.peerClient.init(me);
                   u.users.removeWhere((element) => me.id == element.id);
                   if (!PeerClient.peerClient.peer!.disconnected) {
-                    Get.offAll(() => ListUsers(
+                    Get.to(() => ListUsers(
                           user: me,
                           // peer: peer,
                         ));
@@ -73,7 +73,7 @@ class _ListUsersState extends State<ListUsers> {
 
   @override
   void initState() {
-    innerClient = Client("$url?id=${widget.user.id}/")
+    innerClient = Client("$url?id=${widget.user.id}&&key=user/")
       ..connectivityMonitor = FlutterConnectivityMonitor();
     connectionHandler = StreamingConnectionHandler(
       client: innerClient!,
