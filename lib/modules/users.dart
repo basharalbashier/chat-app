@@ -5,8 +5,6 @@ import 'package:get/get.dart';
 import 'package:get/get_rx/get_rx.dart';
 import 'package:http/http.dart' as http;
 import 'package:test_client/test_client.dart';
-import 'package:test_flutter/main.dart';
-import 'package:test_flutter/modules/show_snackbar.dart';
 import '../helpers/constant.dart';
 
 class Users extends GetxController {

@@ -1,8 +1,10 @@
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:test_flutter/modules/users.dart';
-import 'package:test_flutter/pages/list_users.dart';
+
+import 'modules/users.dart';
+import 'pages/sign_up.dart';
+import 'theme.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -44,14 +46,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.deepOrange,
-      ),
+      theme: themeData,
       navigatorKey: navigatorKey, // Setting a global key for navigator
 
       initialRoute: "/",
       routes: {
-        "/": (context) => const WhoYouAre(),
+        "/": (context) => const SignUp(),
         // '/dataConnectionExample': (context) => const DataConnectionExample(),
       },
     );

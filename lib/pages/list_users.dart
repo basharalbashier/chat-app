@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
-import 'package:test_flutter/helpers/constant.dart';
-import 'package:test_flutter/modules/peer_client.dart';
+import '../helpers/constant.dart';
 import '../helpers/router.dart';
+import '../modules/peer_client.dart';
 import '../modules/users.dart';
 import 'chat_screen.dart';
 
