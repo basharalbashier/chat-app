@@ -1,4 +1,8 @@
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
@@ -8,34 +12,54 @@ import 'theme.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-// FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-//     FlutterLocalNotificationsPlugin();
-
-// final BehaviorSubject<ReceivedNotification> didReceiveLocalNotificationSubject =
-//     BehaviorSubject<ReceivedNotification>();
-
-// final BehaviorSubject<String?> selectNotificationSubject =
-//     BehaviorSubject<String?>();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 String? selectedNotificationPayload;
+final StreamController<String?> selectNotificationStream =
+    StreamController<String?>.broadcast();
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  // ignore: avoid_print
+  print('notification(${notificationResponse.id}) action tapped: '
+      '${notificationResponse.actionId} with'
+      ' payload: ${notificationResponse.payload}');
+  if (notificationResponse.input?.isNotEmpty ?? false) {
+    // ignore: avoid_print
+    print(
+        'notification action tapped with input: ${notificationResponse.input}');
+  }
+}
+
+const String navigationActionId = 'id_3';
+
 final Users u = Get.put(Users());
 
 void main() async {
-  u.init();
   WidgetsFlutterBinding.ensureInitialized();
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/launcher_iconz     ');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse:
+        (NotificationResponse notificationResponse) {
+      switch (notificationResponse.notificationResponseType) {
+        case NotificationResponseType.selectedNotification:
+          selectNotificationStream.add(notificationResponse.payload);
+          break;
+        case NotificationResponseType.selectedNotificationAction:
+          if (notificationResponse.actionId == navigationActionId) {
+            selectNotificationStream.add(notificationResponse.payload);
+          }
+          break;
+      }
+    },
+    onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+  );
+  u.init();
 
-  // const AndroidInitializationSettings initializationSettingsAndroid =
-  //     AndroidInitializationSettings('launcher_icon');
-  // final InitializationSettings initializationSettings = InitializationSettings(
-  //   android: initializationSettingsAndroid,
-  // );
-  //   await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-  //     onSelectNotification: (String? payload) async {
-  //   if (payload != null) {
-  //     debugPrint('notification payload: $payload');
-  //   }
-  //   selectedNotificationPayload = payload;
-  //   // selectNotificationSubject.add(payload);
-  // });
   runApp(const MyApp());
 }
 

@@ -6,7 +6,7 @@ Message getReplay(int id) {
   try {
     message = MessagesModel.messages.singleWhere((element) => element.id == id);
   } catch (e) {
-    return Message(id: 0,content: "unable to fine message", sender: 0, seen_by: []);
+    return Message(id: 0, content: "unable to fine message", seen_by: []);
   }
   return message;
 }

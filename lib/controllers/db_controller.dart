@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat/controllers/signup_controller.dart';
@@ -25,7 +26,7 @@ class DBProvider {
   }
 
   String createTableString =
-      'CREATE TABLE info (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,image TEXT)';
+      'CREATE TABLE info (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photourl TEXT)';
 
   String messagesTable =
       'CREATE TABLE info (id INTEGER PRIMARY KEY AUTOINCREMENT, channel TEXT, content TEXT,sender TEXT,sent_to TEXT,sent_at TEXT,seen_at TEXT,seen_by TEXT,group TEXT,deleted TEXT,replayto TEXT)';
@@ -43,7 +44,6 @@ class DBProvider {
       sqfliteFfiInit();
       Directory dir = await getApplicationDocumentsDirectory();
       var databaseFactory = databaseFactoryFfi;
-      // var database = await databaseFactory.openDatabase(inMemoryDatabasePath);
       String path = join(dir.path, "chat.db");
       var db = await databaseFactory.openDatabase(path,
           options: OpenDatabaseOptions(
@@ -65,27 +65,21 @@ $messagesTable
   Future<User> getMe() async {
     final db = await database;
     var result = await db.rawQuery("SELECT * FROM info");
-    // WHERE job = '%${search}%' OR joba = '${search}' OR jobb = '${search}' OR jobc = '${search}' ORDER BY distance;
-
     if (result.isEmpty) return User(name: '');
-// print(result[0]['name']);
-
-    var user = User.fromJson(result[0], Protocol());
+    Map<String, dynamic> data = Map.of(result[0]);
+    var user = User.fromJson(data, Protocol());
+    await client.userEndPoint.store(user);
+    LoginController().me.value = user;
     return user;
   }
 
-  addMe() async {
-    // User user = User(
-    // id: int.parse(value!.id),
-    // name: value.displayName!,
-    // email: value.email);
-    var user = LoginController().googleAccount.value;
+  addMe(User user) async {
     final db = await database;
     db.rawDelete("Delete from info WHERE id=1");
     var raw = await db.rawInsert(
-        "INSERT Into info (id,uid,name,email,image)"
+        "INSERT Into info (id,uid,name,email,photourl)"
         " VALUES (?,?,?,?,?)",
-        [1, user!.id, user.displayName, user.email, user..photoUrl]);
+        [user.id, user.uid, user.name, user.email, user.photourl]);
     var userFromHere = await getMe();
     await client.userEndPoint.store(userFromHere);
     return raw;

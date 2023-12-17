@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' as fwebrtc;
 import 'package:get/get.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
@@ -17,7 +16,7 @@ class PeerClient {
   Future<void> init(User user) async {
     me = user;
     peer = Peer(
-        id: user.id.toString(),
+        id: user.uid.toString(),
         options: PeerOptions(
             secure: false,
             host: host,

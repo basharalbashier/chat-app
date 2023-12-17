@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:peerdart/peerdart.dart';
@@ -21,10 +22,11 @@ class AwnCall extends StatefulWidget {
 }
 
 class _AwnCallState extends State<AwnCall> {
+  MediaStream? _localStream;
   final _localRenderer = RTCVideoRenderer();
   final _remoteRenderer = RTCVideoRenderer();
   bool isVideo = false;
-  @override
+  bool inCall = false;
   void initState() {
     isVideo = widget.isVideo;
     awnser(widget.call);
@@ -32,19 +34,56 @@ class _AwnCallState extends State<AwnCall> {
     super.initState();
   }
 
+  Future<void> _selectAudioOutput(String? deviceId) async {
+    if (!inCall) {
+      return;
+    }
+    await _localRenderer.audioOutput(deviceId!);
+  }
+
+  var _speakerphoneOn = false;
+
+  Future<void> _setSpeakerphoneOn() async {
+    _speakerphoneOn = !_speakerphoneOn;
+    await Helper.setSpeakerphoneOn(_speakerphoneOn);
+    setState(() {});
+  }
+
   awnser(MediaConnection call) async {
-    final mediaStream = await navigator.mediaDevices
+    _localStream = await navigator.mediaDevices
         .getUserMedia({"video": isVideo, "audio": true});
-    call.answer(mediaStream);
+    call.answer(_localStream!);
 
     call.on<MediaStream>("stream").listen((event) {
-      _localRenderer.srcObject = mediaStream;
+      _localRenderer.srcObject = _localStream;
       _remoteRenderer.srcObject = event;
 
       setState(() {
-        // inCall = true;
+        inCall = true;
       });
     });
+  }
+
+  Future<void> _stop() async {
+    try {
+      _localStream?.getTracks().forEach((track) async {
+        await track.stop();
+      });
+      await _localStream?.dispose();
+      _localStream = null;
+      _localRenderer.srcObject = null;
+      _remoteRenderer.srcObject = null;
+      // senders.clear();
+      inCall = false;
+      _speakerphoneOn = false;
+      await Helper.setSpeakerphoneOn(_speakerphoneOn);
+      setState(() {});
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (kDebugMode) {
+        print(e.toString());
+      }
+    }
   }
 
   @override
@@ -105,8 +144,10 @@ class _AwnCallState extends State<AwnCall> {
                         IconButton(
                             onPressed: () => {}, icon: Icon(Icons.mic_rounded)),
                         IconButton(
-                            onPressed: () => {},
-                            icon: Icon(Icons.speaker_phone_rounded)),
+                            onPressed: () => _setSpeakerphoneOn,
+                            icon: Icon(_speakerphoneOn
+                                ? Icons.speaker_phone
+                                : Icons.phone_android)),
                         IconButton(
                             color: Colors.blue,
                             onPressed: () => {},
@@ -118,10 +159,7 @@ class _AwnCallState extends State<AwnCall> {
                                 : Icons.videocam_off)),
                         IconButton(
                             color: Colors.red,
-                            onPressed: () {
-                              PeerClient.peerClient.init(widget.user);
-                              Navigator.of(context).pop();
-                            },
+                            onPressed: () => _stop(),
                             icon: const Icon(Icons.call_end))
                       ],
                     )),

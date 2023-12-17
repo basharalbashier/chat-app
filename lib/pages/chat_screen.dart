@@ -35,7 +35,7 @@ class _MyHomePageState extends State<ChatScreen> {
   @override
   void initState() {
     innerClient =
-        Client("$url/?id=${widget.user.id}&&to=${widget.to.id}&&key=chat/")
+        Client("$url/?id=${widget.user.uid}&&to=${widget.to.uid}&&key=chat/")
           ..connectivityMonitor = FlutterConnectivityMonitor();
     connectionHandler = StreamingConnectionHandler(
       client: innerClient!,
@@ -90,12 +90,9 @@ class _MyHomePageState extends State<ChatScreen> {
     if (messageText != '') {
       Message message = Message(
           content: messageText,
-          sender: widget.user.id ?? 0,
-          sent_to: 1,
-          seen_by: [],
-          group: false,
-          deleted: false,
-          replayto: replyMessage != null ? replyMessage!.id : null);
+          send_by: widget.user.uid,
+          replayto: replyMessage != null ? replyMessage!.id : null,
+          seen_by: []);
       if (connectionHandler.status.status.index == 0) {
         await innerClient!.messageEndPoint.sendStreamMessage(message);
         _messageController.text = '';
@@ -135,25 +132,26 @@ class _MyHomePageState extends State<ChatScreen> {
               children: [
                 IconButton(
                     onPressed: () => move(
-                        context,
-                        true,
-                        CallScreen(
-                          user: widget.user,
-                          to: widget.to,
-                          isVideo: false,
-                          // peer:widget.peer
-                        )),
+                          context,
+                          true,
+                          Container(),
+                          // CallScreen(
+                          //   user: widget.user,
+                          //   to: widget.to,
+                          //   isVideo: false,
+                          //   // peer:widget.peer
+                          // )
+                        ),
                     icon: const Icon(Icons.call)),
                 IconButton(
-                    onPressed: () => move(
-                        context,
-                        true,
-                        CallScreen(
-                          user: widget.user,
-                          to: widget.to,
-                          isVideo: true,
-                          // peer:widget.peer
-                        )),
+                    onPressed: () => move(context, true, Container()
+                        // CallScreen(
+                        //   user: widget.user,
+                        //   to: widget.to,
+                        //   isVideo: true,
+                        //   // peer:widget.peer
+                        // )
+                        ),
                     icon: const Icon(Icons.video_call))
               ],
             )
@@ -188,7 +186,7 @@ class _MyHomePageState extends State<ChatScreen> {
                     //       .showSnackBar(SnackBar(content: Text('dismissed')));
                     // },
                     key: Key(message.toString()),
-                    child: (message.sender == widget.user.id)
+                    child: (message.send_by == widget.user.uid)
                         ? myMessage(message, true, size)
                         : myMessage(message, false, size));
               },
