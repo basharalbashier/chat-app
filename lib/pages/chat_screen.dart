@@ -6,6 +6,7 @@ import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
 
 import 'package:flutter/foundation.dart' as foundation;
+import '../controllers/signup_controller.dart';
 import '../controllers/socket_io_constroller.dart';
 import '../helpers/constant.dart';
 import '../helpers/find_message.dart';
@@ -16,9 +17,8 @@ import '../widgets/message_widget.dart';
 import 'call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.user, required this.to});
+  const ChatScreen({super.key, required this.to});
 // final Peer peer;
-  final User user;
   final User to;
 
   @override
@@ -26,6 +26,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<ChatScreen> {
+  User? me = LoginController().me.value;
   final TextEditingController _messageController = TextEditingController();
   ScrollController? _controller;
   late final StreamingConnectionHandler connectionHandler;
@@ -34,9 +35,8 @@ class _MyHomePageState extends State<ChatScreen> {
   Client? innerClient;
   @override
   void initState() {
-    innerClient =
-        Client("$url/?id=${widget.user.uid}&&to=${widget.to.uid}&&key=chat/")
-          ..connectivityMonitor = FlutterConnectivityMonitor();
+    innerClient = Client("$url/?id={.uid}&&to=${widget.to.uid}&&key=chat/")
+      ..connectivityMonitor = FlutterConnectivityMonitor();
     connectionHandler = StreamingConnectionHandler(
       client: innerClient!,
       listener: (connectionState) {
@@ -90,7 +90,7 @@ class _MyHomePageState extends State<ChatScreen> {
     if (messageText != '') {
       Message message = Message(
           content: messageText,
-          send_by: widget.user.uid,
+          // send_by: widget.user.uid,
           replayto: replyMessage != null ? replyMessage!.id : null,
           seen_by: []);
       if (connectionHandler.status.status.index == 0) {
@@ -186,7 +186,7 @@ class _MyHomePageState extends State<ChatScreen> {
                     //       .showSnackBar(SnackBar(content: Text('dismissed')));
                     // },
                     key: Key(message.toString()),
-                    child: (message.send_by == widget.user.uid)
+                    child: (message.send_by == /*widget.user.uid*/ "")
                         ? myMessage(message, true, size)
                         : myMessage(message, false, size));
               },

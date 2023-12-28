@@ -15,17 +15,20 @@ class PeerClient {
   User? me;
   Future<void> init(User user) async {
     me = user;
-    peer = Peer(
-        id: user.uid.toString(),
-        options: PeerOptions(
-            secure: false,
-            host: host,
-            port: 9000,
-            path: "/",
-            debug: LogLevel.All));
+    try {
+      peer = Peer(
+          id: user.uid.toString(),
+          options: PeerOptions(
+              secure: false,
+              host: host,
+              port: 8080,
+              path: "/peer",
+              debug: LogLevel.All));
+    } catch (e) {
+      print(e);
+    }
     peer!.on<MediaConnection>("call").listen((call) async {
-      var user = u.getUser(int.tryParse(call.peer) ?? 0);
-      showMyDialog(user, call);
+      showMyDialog(User(name: "name"), call);
     });
   }
 }

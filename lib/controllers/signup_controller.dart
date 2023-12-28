@@ -5,8 +5,6 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:test_client/test_client.dart';
 
-import '../pages/list_users.dart';
-
 class LoginController extends GetxController {
   final _googleSignIn = GoogleSignIn();
   var googleAccount = Rx<GoogleSignInAccount?>(null);
@@ -23,10 +21,9 @@ class LoginController extends GetxController {
           email: value.email,
           photourl: value.photoUrl);
       await DBProvider.db.addMe(user);
-      Get.offAll(() => ListUsers(user: user));
     } catch (e) {
       if (kDebugMode) {
-        print(e.toString() + ": sign in error");
+        print("$e: sign in error");
       }
     }
   }

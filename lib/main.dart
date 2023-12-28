@@ -32,12 +32,10 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 
 const String navigationActionId = 'id_3';
 
-final Users u = Get.put(Users());
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/launcher_iconz     ');
+      AndroidInitializationSettings('@mipmap/launcher_icon');
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
   );
@@ -58,7 +56,6 @@ void main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-  u.init();
 
   runApp(const MyApp());
 }

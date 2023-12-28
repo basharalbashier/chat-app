@@ -1,19 +1,16 @@
+import 'package:chat/controllers/db_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
-import '../helpers/constant.dart';
+import '../controllers/signup_controller.dart';
 import '../helpers/router.dart';
-import '../modules/peer_client.dart';
 import '../modules/users.dart';
 import 'chat_screen.dart';
 
 class ListUsers extends StatefulWidget {
   const ListUsers({
     super.key,
-    required this.user,
   });
-  final User user;
   @override
   State<ListUsers> createState() => _ListUsersState();
 }
@@ -21,17 +18,21 @@ class ListUsers extends StatefulWidget {
 class _ListUsersState extends State<ListUsers> {
   @override
   void initState() {
-    PeerClient.peerClient.init(widget.user);
+    setMe();
     super.initState();
   }
 
+  User? me;
+  setMe() async =>
+      await DBProvider.db.getMe().then((value) => setState(() => me = value));
   @override
   Widget build(BuildContext context) {
     Users _dx = Get.put(Users());
-    _dx.users.removeWhere((element) => widget.user.uid == element.uid);
+    _dx.users.removeWhere((element) => me!.uid == element.uid);
+
     return Scaffold(
         appBar: AppBar(
-          title: Text('I am ${widget.user.name}'),
+          title: Text(me != null ? 'I am ${me!.name}' : ""),
         ),
         body: Obx(
           () => ListView.builder(
@@ -42,7 +43,6 @@ class _ListUsersState extends State<ListUsers> {
                   context,
                   true,
                   ChatScreen(
-                    user: widget.user,
                     to: _dx.users[index],
                     // peer: peer,
                   ),

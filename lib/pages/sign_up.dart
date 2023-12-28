@@ -87,19 +87,19 @@ class _SignUpState extends State<SignUp> {
         AndroidNotificationAction(
           "urlLaunchActionId",
           'Action 1',
-          icon: DrawableResourceAndroidBitmap('food'),
+          icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
           contextual: true,
         ),
         AndroidNotificationAction(
           'id_2',
           'Action 2',
           titleColor: Color.fromARGB(255, 255, 0, 0),
-          icon: DrawableResourceAndroidBitmap('secondary_icon'),
+          icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
         ),
         AndroidNotificationAction(
           navigationActionId,
           'Action 3',
-          icon: DrawableResourceAndroidBitmap('secondary_icon'),
+          icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
           showsUserInterface: true,
           // By default, Android plugin will dismiss the notification when the
           // user tapped on a action (this mimics the behavior on iOS).
@@ -153,6 +153,6 @@ class _SignUpState extends State<SignUp> {
   }
 
   _nextPage(User user) async {
-    Get.offAll(() => ListUsers(user: user));
+    Get.offAll(() => const ListUsers());
   }
 }
