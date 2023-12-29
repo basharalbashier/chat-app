@@ -148,7 +148,6 @@ class _SignUpState extends State<SignUp> {
 
   void _getIfReg() async {
     User data = await DBProvider.db.getMe();
-    _showNotificationWithActions();
     data.name.isEmpty ? setState(() => info = [0]) : _nextPage(data);
   }
 

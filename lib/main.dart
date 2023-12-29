@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 import 'modules/users.dart';
+import 'pages/list_users.dart';
 import 'pages/sign_up.dart';
 import 'theme.dart';
 

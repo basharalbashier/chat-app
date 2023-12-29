@@ -1,18 +1,17 @@
-import 'dart:convert';
 import 'dart:io';
-
-import 'package:chat/controllers/signup_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/route_manager.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:peerdart/peerdart.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:test_client/test_client.dart';
-
 import '../helpers/constant.dart';
 import '../modules/peer_client.dart';
 import '../pages/list_users.dart';
+
+String usersTabeName = 'users';
+String messagesTableName = 'messages';
 
 class DBProvider {
   DBProvider._();
@@ -23,16 +22,15 @@ class DBProvider {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    debugPrint('initlizeing..');
     _database = await initDB();
     return _database!;
   }
 
   String createTableString =
-      'CREATE TABLE info (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photourl TEXT)';
+      'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT)';
 
   String messagesTable =
-      'CREATE TABLE info (id INTEGER PRIMARY KEY AUTOINCREMENT, channel TEXT, content TEXT,sender TEXT,sent_to TEXT,sent_at TEXT,seen_at TEXT,seen_by TEXT,group TEXT,deleted TEXT,replayto TEXT)';
+      'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
 
   initDB() async {
     if (Platform.isAndroid || Platform.isIOS) {
@@ -41,6 +39,7 @@ class DBProvider {
       return await openDatabase(path, version: 1, onOpen: (db) {},
           onCreate: (Database db, int version) async {
         await db.execute(createTableString);
+        await db.execute(messagesTable);
       });
     }
     if (Platform.isLinux || Platform.isWindows) {
@@ -67,21 +66,20 @@ $messagesTable
 
   Future<User> getMe() async {
     final db = await database;
-    var result = await db.rawQuery("SELECT * FROM info");
+    var result = await db.rawQuery("SELECT * FROM $usersTabeName");
     if (result.isEmpty) return User(name: '');
     Map<String, dynamic> data = Map.of(result[0]);
     var user = User.fromJson(data, Protocol());
-    // await client.userEndPoint.store(user);
-    PeerClient.peerClient.init(user);
-
+    PeerClient.client.me = user;
+    PeerClient.client.init();
     return user;
   }
 
   Future<void> addMe(User user) async {
     final db = await database;
-    await db.rawDelete("Delete from info WHERE id=1");
+    await db.rawDelete("Delete from $usersTabeName WHERE id=1");
     await db.rawInsert(
-        "INSERT Into info (id,uid,name,email,photourl)"
+        "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
         " VALUES (?,?,?,?,?)",
         [user.id, user.uid, user.name, user.email, user.photourl]);
     Get.offAll(() => const ListUsers());

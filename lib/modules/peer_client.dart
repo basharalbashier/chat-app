@@ -1,75 +1,53 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:chat/modules/show_snackbar.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
-import '../main.dart';
-import '../pages/awn_call.dart';
+import '../pages/new_call.dart';
 
 class PeerClient {
-  // const PeerClient({required this.user});
   PeerClient._();
-  static final PeerClient peerClient = PeerClient._();
+  static final PeerClient client = PeerClient._();
   Peer? peer;
+
   bool inCall = false;
   User? me;
-  Future<void> init(User user) async {
-    me = user;
+  Future<void> init() async {
     try {
       peer = Peer(
-          id: user.uid.toString(),
+          id: me!.uid.toString(),
           options: PeerOptions(
-              secure: false,
-              host: host,
-              port: 8080,
-              path: "/peer",
-              debug: LogLevel.All));
+            secure: false,
+            host: host,
+            port: 8080,
+            path: "/peer",
+          ));
+      peer!.reconnect();
     } catch (e) {
-      print(e);
+      await dispose();
+      init();
     }
+
     peer!.on<MediaConnection>("call").listen((call) async {
-      showMyDialog(User(name: "name"), call);
+      showCallDialog(User(name: "name"), call);
+    });
+    peer!.on<DataConnection>("connection").listen((event) async {
+      event.on("data").listen((data) {
+        showSnackbar(event.peer);
+      });
     });
   }
-}
 
-void showMyDialog(User user, MediaConnection call) {
-  showDialog(
-      context: navigatorKey.currentContext!,
-      builder: (context) => Center(
-            child: Material(
-              // color: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    Text('${user.name} is calling ..'),
-                    Row(
-                      children: [
-                        IconButton(
-                            onPressed: (() {
-                              // call.
-
-                              call.dispose();
-                              Navigator.of(context).pop();
-                            }),
-                            icon: Icon(Icons.call_end)),
-                        IconButton(
-                            onPressed: (() {
-                              Navigator.of(context).pop();
-                              Get.to(AwnCall(
-                                user: PeerClient.peerClient.me!,
-                                to: user,
-                                isVideo: false,
-                                call: call,
-                              ));
-                            }),
-                            icon: const Icon(Icons.call)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  dispose() async {
+    try {
+      peer = Peer(
+          id: me!.uid.toString(),
+          options: PeerOptions(
+            secure: false,
+            host: host,
+            port: 8080,
+            path: "/peer",
           ));
+      peer!.dispose();
+    } catch (e) {}
+  }
 }
