@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'package:chat/modules/message.dart';
+import 'package:chat/modules/users.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:get/route_manager.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,7 +33,7 @@ class DBProvider {
       'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT)';
 
   String messagesTable =
-      'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
+      'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_at TEXT,seen_at TEXT)';
 
   initDB() async {
     if (Platform.isAndroid || Platform.isIOS) {
@@ -87,6 +90,55 @@ $messagesTable
     // await client.userEndPoint.store(userFromHere);
   }
 
+  Future<Message> addMessage(Message message) async {
+    final db = await database;
+    /**
+     *       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,
+     * content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT
+     * ,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
+
+     */
+    await db.rawInsert(
+        "INSERT Into $messagesTableName (channel,content,sender,sent_at)"
+        " VALUES (?,?,?,?)",
+        [
+          message.channel,
+          message.content,
+          message.send_by,
+          message.sent_at.toString()
+        ]);
+    return message;
+    // await client.userEndPoint.store(userFromHere);
+  }
+
+  Future<List<Message>> listChannels() async {
+    final db = await database;
+    /**
+     *       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,
+     * content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT
+     * ,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
+
+     */
+    var result = await db.rawQuery("SELECT * FROM $messagesTableName");
+    List<Message> messages = [];
+    var _dx = Get.put(Channels());
+    var messagesModel = Get.put(MessagesModel());
+    _dx.channels.clear();
+    messagesModel.clear();
+    for (var i in result) {
+      Map<String, dynamic> one = Map.of(i);
+      one["seen_by"] = [];
+      var message = Message.fromJson(one, Protocol());
+      messagesModel.updateMessages(message);
+      var check =
+          messages.where((element) => element.channel == message.channel);
+      if (check.isEmpty) {
+        messages.add(message);
+        _dx.updateUsers(message);
+      }
+    }
+    return messages;
+  }
   // showToast(a, e, la) {
   //   Fluttertoast.showToast(
   //       msg: la ? a : e,

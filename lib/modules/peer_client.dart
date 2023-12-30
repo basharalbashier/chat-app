@@ -1,4 +1,6 @@
+import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/modules/show_snackbar.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
@@ -33,6 +35,14 @@ class PeerClient {
     peer!.on<DataConnection>("connection").listen((event) async {
       event.on("data").listen((data) {
         showSnackbar(event.peer);
+        var message = Message(
+            content: data,
+            seen_by: [],
+            channel: event.peer,
+            send_by: event.peer,
+            sent_at: DateTime.now());
+        DBProvider.db.addMessage(message);
+        DBProvider.db.listChannels();
       });
     });
   }

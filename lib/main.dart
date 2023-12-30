@@ -57,7 +57,6 @@ void main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-
   runApp(const MyApp());
 }
 

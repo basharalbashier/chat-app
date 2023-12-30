@@ -1,6 +1,9 @@
 // import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:chat/modules/peer_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
@@ -19,7 +22,7 @@ import 'call_screen.dart';
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.to});
 // final Peer peer;
-  final User to;
+  final String to;
 
   @override
   State<ChatScreen> createState() => _MyHomePageState();
@@ -33,21 +36,22 @@ class _MyHomePageState extends State<ChatScreen> {
   bool emojiShowing = false;
   Conversation? conversation;
   Client? innerClient;
+
   @override
   void initState() {
-    innerClient = Client("$url/?id={.uid}&&to=${widget.to.uid}&&key=chat/")
-      ..connectivityMonitor = FlutterConnectivityMonitor();
-    connectionHandler = StreamingConnectionHandler(
-      client: innerClient!,
-      listener: (connectionState) {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-    );
-    // client.openStreamingConnection();
-    connectionHandler.connect();
-    _listenToUpdates();
+    // innerClient = Client("$url/?id={.uid}&&to=${widget.to.uid}&&key=chat/")
+    //   ..connectivityMonitor = FlutterConnectivityMonitor();
+    // connectionHandler = StreamingConnectionHandler(
+    //   client: innerClient!,
+    //   listener: (connectionState) {
+    //     if (mounted) {
+    //       setState(() {});
+    //     }
+    //   },
+    // );
+    // // client.openStreamingConnection();
+    // connectionHandler.connect();
+    // _listenToUpdates();
     _controller = ScrollController();
 
     super.initState();
@@ -55,7 +59,6 @@ class _MyHomePageState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    MessagesModel.messages.clear();
     connectionHandler.close();
     connectionHandler.dispose();
     innerClient!.close();
@@ -65,17 +68,17 @@ class _MyHomePageState extends State<ChatScreen> {
 
   Message? replyMessage;
 
-  Future<void> _listenToUpdates() async {
-    await for (var update in innerClient!.messageEndPoint.stream) {
-      if (update is Message) {
-        if (update.id == null || getReplay(update.id!).id == 0) {
-          setState(() {
-            MessagesModel.messages.add(update);
-          });
-        }
-      }
-    }
-  }
+  // Future<void> _listenToUpdates() async {
+  //   await for (var update in innerClient!.messageEndPoint.stream) {
+  //     if (update is Message) {
+  //       if (update.id == null || getReplay(update.id!).id == 0) {
+  //         setState(() {
+  //           MessagesModel.messages.add(update);
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 
   onRole() {
     _controller!.animateTo(
@@ -104,6 +107,7 @@ class _MyHomePageState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     Size? size = MediaQuery.maybeOf(context)?.size;
+    var messagesModel = Get.put(MessagesModel()).messages;
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
@@ -117,15 +121,9 @@ class _MyHomePageState extends State<ChatScreen> {
                 TextButton(
                     onPressed: () => onRole(),
                     child: Text(
-                      widget.to.name,
+                      widget.to,
                       // style: const TextStyle(color: Colors.white),
                     )),
-                Positioned(
-                  right: 0,
-                  child: ConnectionDisplay(
-                    connectionState: connectionHandler.status,
-                  ),
-                ),
               ],
             ),
             Row(
@@ -161,37 +159,41 @@ class _MyHomePageState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
+              child: Obx(
+            () => ListView.builder(
               controller: _controller,
               scrollDirection: Axis.vertical,
               shrinkWrap: true,
               reverse: true,
               cacheExtent: 1000,
-              itemCount: MessagesModel.messages.length,
+              itemCount: messagesModel.length,
               itemBuilder: (BuildContext context, int index) {
-                Message message = MessagesModel
-                    .messages[MessagesModel.messages.length - index - 1];
+                Message message =
+                    messagesModel[messagesModel.length - index - 1];
 
                 // print(message);
-                return Dismissible(
-                    confirmDismiss: (direction) async {
-                      setState(() {
-                        replyMessage = message;
-                      });
-                      return false;
-                    },
+                return message.channel == widget.to
+                    ? Dismissible(
+                        confirmDismiss: (direction) async {
+                          setState(() {
+                            replyMessage = message;
+                          });
+                          return false;
+                        },
 
-                    //   // Then show a snackbar.
-                    //   ScaffoldMessenger.of(context)
-                    //       .showSnackBar(SnackBar(content: Text('dismissed')));
-                    // },
-                    key: Key(message.toString()),
-                    child: (message.send_by == /*widget.user.uid*/ "")
-                        ? myMessage(message, true, size)
-                        : myMessage(message, false, size));
+                        //   // Then show a snackbar.
+                        //   ScaffoldMessenger.of(context)
+                        //       .showSnackBar(SnackBar(content: Text('dismissed')));
+                        // },
+                        key: Key(message.toString()),
+                        child: (message.send_by ==
+                                PeerClient.client.me!.uid /*widget.user.uid*/)
+                            ? myMessage(message, true, size)
+                            : myMessage(message, false, size))
+                    : Container();
               },
             ),
-          ),
+          )),
           Container(
               // height: size!.height / (replyMessage != null ? 3 : 6),
               color: Colors.white.withOpacity(.7),

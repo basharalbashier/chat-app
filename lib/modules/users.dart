@@ -7,31 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
 
-class Users extends GetxController {
-  RxList<User> users = List<User>.from([]).obs;
+class Channels extends GetxController {
+  RxList<Message> channels = List<Message>.from([]).obs;
 
-  updateUsers(User user) async {
-    users.add(user);
+  updateUsers(Message user) async {
+    channels.add(user);
   }
 
   Timer? _timer;
-  init() async {
-    users.clear();
-
-    try {
-      var result = await client.userEndPoint.getAllUsers();
-
-      for (var user in result) {
-        // if (user.id != widget.user.id) {
-        users.add(user);
-        // }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Initilazing error: $e");
-      }
-    }
-  }
 
   // checkUsers() async {
   //   try {
@@ -68,14 +51,4 @@ class Users extends GetxController {
   //     }
   //   } catch (e) {}
   // }
-
-  User getUser(int id) {
-    User user;
-    try {
-      user = users.singleWhere((element) => element.id == id);
-    } catch (e) {
-      return User(id: 0, name: "unable to fine message");
-    }
-    return user;
-  }
 }

@@ -19,16 +19,21 @@ class _ListUsersState extends State<ListUsers> {
   @override
   void initState() {
     setMe();
+    _getMessages();
     super.initState();
   }
 
+  _getMessages() async => await DBProvider.db
+      .listChannels()
+      .then((value) => setState(() => messages = value));
+  List<Message> messages = [];
   User? me;
   setMe() async =>
       await DBProvider.db.getMe().then((value) => setState(() => me = value));
   @override
   Widget build(BuildContext context) {
-    Users _dx = Get.put(Users());
-    _dx.users.removeWhere((element) => me!.uid == element.uid);
+    var _dx = Get.put(Channels());
+    // _dx.users.removeWhere((element) => me!.uid == element.uid);
 
     return Scaffold(
         appBar: AppBar(
@@ -36,14 +41,14 @@ class _ListUsersState extends State<ListUsers> {
         ),
         body: Obx(
           () => ListView.builder(
-            itemCount: _dx.users.length,
+            itemCount: _dx.channels.length,
             itemBuilder: (context, index) {
               return GestureDetector(
                 onTap: () => move(
                   context,
                   true,
                   ChatScreen(
-                    to: _dx.users[index],
+                    to: _dx.channels[index].channel!,
                     // peer: peer,
                   ),
                 ),
@@ -62,7 +67,7 @@ class _ListUsersState extends State<ListUsers> {
                                 ),
                           ),
 
-                          Text(_dx.users[index].name),
+                          Text(_dx.channels[index].channel!),
                           // CircleAvatar(
                           //   radius: 5,
                           //   backgroundColor: _dx.users[index].status == null ||
