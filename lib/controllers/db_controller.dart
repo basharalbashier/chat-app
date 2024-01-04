@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:chat/helpers/http_post.dart';
 import 'package:chat/modules/message.dart';
 import 'package:chat/modules/users.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,8 @@ import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
 import '../modules/peer_client.dart';
 import '../pages/list_users.dart';
+
+var _dx = Get.put(Channels());
 
 String usersTabeName = 'users';
 String messagesTableName = 'messages';
@@ -68,36 +71,60 @@ $messagesTable
   }
 
   Future<User> getMe() async {
+    _dx.channels.clear();
     final db = await database;
     var result = await db.rawQuery("SELECT * FROM $usersTabeName");
     if (result.isEmpty) return User(name: '');
     Map<String, dynamic> data = Map.of(result[0]);
     var user = User.fromJson(data, Protocol());
-    PeerClient.client.me = user;
-    PeerClient.client.init();
+    for (var i in result) {
+      var user = User.fromJson(i, Protocol());
+      _dx.updateUsers(user);
+    }
+    await PeerClient.client.init(user);
+
     return user;
   }
 
-  Future<void> addMe(User user) async {
+  Future<void> addUser(User user, bool isMe) async {
     final db = await database;
-    await db.rawDelete("Delete from $usersTabeName WHERE id=1");
-    await db.rawInsert(
-        "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
-        " VALUES (?,?,?,?,?)",
-        [user.id, user.uid, user.name, user.email, user.photourl]);
-    Get.offAll(() => const ListUsers());
+    isMe ? await db.rawDelete("Delete from $usersTabeName WHERE id=1") : null;
 
-    // await client.userEndPoint.store(userFromHere);
+    !isMe
+        ? await db
+            .rawQuery("SELECT * FROM $usersTabeName")
+            .then((result) async {
+            bool exist = false;
+            for (var i in result) {
+              if (i['uid'] == user.uid) {
+                exist = true;
+              }
+            }
+            if (!exist) {
+              user.id = result.length + 1;
+              await db.rawInsert(
+                  "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+                  " VALUES (?,?,?,?,?)",
+                  [user.id, user.uid, user.name, user.email, user.photoUrl]);
+              _dx.updateUsers(user);
+            }
+          })
+        : null;
+
+    isMe
+        ? await db.rawInsert(
+            "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+            " VALUES (?,?,?,?,?)",
+            [1, user.uid, user.name, user.email, user.photoUrl])
+        : null;
+    isMe ? await httpPostRequest(user.toJson()) : null;
+
+    isMe ? Get.offAll(() => const ListUsers()) : null;
   }
 
   Future<Message> addMessage(Message message) async {
+    print(message);
     final db = await database;
-    /**
-     *       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,
-     * content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT
-     * ,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
-
-     */
     await db.rawInsert(
         "INSERT Into $messagesTableName (channel,content,sender,sent_at)"
         " VALUES (?,?,?,?)",
@@ -111,31 +138,23 @@ $messagesTable
     // await client.userEndPoint.store(userFromHere);
   }
 
-  Future<List<Message>> listChannels() async {
+  Future<List<Message>> listMessages() async {
     final db = await database;
-    /**
-     *       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,
-     * content TEXT,sender TEXT,sent_to TEXT,seen_at TEXT
-     * ,seen_by TEXT,group_ TEXT,deleted TEXT,replayto TEXT)';
-
-     */
     var result = await db.rawQuery("SELECT * FROM $messagesTableName");
     List<Message> messages = [];
-    var _dx = Get.put(Channels());
     var messagesModel = Get.put(MessagesModel());
-    _dx.channels.clear();
     messagesModel.clear();
     for (var i in result) {
       Map<String, dynamic> one = Map.of(i);
       one["seen_by"] = [];
       var message = Message.fromJson(one, Protocol());
       messagesModel.updateMessages(message);
-      var check =
-          messages.where((element) => element.channel == message.channel);
-      if (check.isEmpty) {
-        messages.add(message);
-        _dx.updateUsers(message);
-      }
+      print(message);
+      // var check =
+      //     messages.where((element) => element.channel == message.channel);
+      // if (check.isEmpty) {
+      //   messages.add(message);
+      // }
     }
     return messages;
   }

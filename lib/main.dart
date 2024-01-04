@@ -1,13 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
-import 'dart:io';
-
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-
-import 'modules/users.dart';
-import 'pages/list_users.dart';
 import 'pages/sign_up.dart';
 import 'theme.dart';
 

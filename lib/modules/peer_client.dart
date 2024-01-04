@@ -1,6 +1,5 @@
 import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/modules/show_snackbar.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
@@ -13,21 +12,17 @@ class PeerClient {
 
   bool inCall = false;
   User? me;
-  Future<void> init() async {
-    try {
-      peer = Peer(
-          id: me!.uid.toString(),
-          options: PeerOptions(
-            secure: false,
-            host: host,
-            port: 8080,
-            path: "/peer",
-          ));
-      peer!.reconnect();
-    } catch (e) {
-      await dispose();
-      init();
-    }
+  Future<void> init(User user) async {
+    me = user;
+    peer = Peer(
+        id: me!.uid.toString(),
+        options: PeerOptions(
+          secure: false,
+          host: host,
+          port: 8080,
+          path: "/peer",
+          debug: LogLevel.All,
+        ));
 
     peer!.on<MediaConnection>("call").listen((call) async {
       showCallDialog(User(name: "name"), call);
@@ -42,21 +37,15 @@ class PeerClient {
             send_by: event.peer,
             sent_at: DateTime.now());
         DBProvider.db.addMessage(message);
-        DBProvider.db.listChannels();
+        DBProvider.db.listMessages();
       });
     });
   }
 
   dispose() async {
     try {
-      peer = Peer(
-          id: me!.uid.toString(),
-          options: PeerOptions(
-            secure: false,
-            host: host,
-            port: 8080,
-            path: "/peer",
-          ));
+      peer = Peer();
+      peer!.controller.close();
       peer!.dispose();
     } catch (e) {}
   }

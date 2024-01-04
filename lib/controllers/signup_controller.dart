@@ -19,8 +19,8 @@ class LoginController extends GetxController {
           uid: value!.id,
           name: value.displayName!,
           email: value.email,
-          photourl: value.photoUrl);
-      await DBProvider.db.addMe(user);
+          photoUrl: value.photoUrl);
+      await DBProvider.db.addUser(user, true);
     } catch (e) {
       if (kDebugMode) {
         print("$e: sign in error");

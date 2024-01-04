@@ -1,44 +1,38 @@
 // import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/modules/peer_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:peerdart/peerdart.dart';
-import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:test_client/test_client.dart';
 
-import 'package:flutter/foundation.dart' as foundation;
-import '../controllers/signup_controller.dart';
-import '../controllers/socket_io_constroller.dart';
-import '../helpers/constant.dart';
-import '../helpers/find_message.dart';
 import '../helpers/router.dart';
-import '../main.dart';
 import '../modules/message.dart';
 import '../widgets/message_widget.dart';
-import 'call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.to});
 // final Peer peer;
-  final String to;
+  final User to;
 
   @override
   State<ChatScreen> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<ChatScreen> {
-  User? me = LoginController().me.value;
+  User? me = PeerClient.client.me;
   final TextEditingController _messageController = TextEditingController();
   ScrollController? _controller;
-  late final StreamingConnectionHandler connectionHandler;
+  // late final StreamingConnectionHandler connectionHandler;
   bool emojiShowing = false;
-  Conversation? conversation;
-  Client? innerClient;
-
+  // Conversation? conversation;
+  // Client? innerClient;
+  var conn;
   @override
   void initState() {
+    conn = PeerClient.client.peer!.connect(widget.to.uid!);
+
     // innerClient = Client("$url/?id={.uid}&&to=${widget.to.uid}&&key=chat/")
     //   ..connectivityMonitor = FlutterConnectivityMonitor();
     // connectionHandler = StreamingConnectionHandler(
@@ -59,10 +53,10 @@ class _MyHomePageState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    connectionHandler.close();
-    connectionHandler.dispose();
-    innerClient!.close();
-    innerClient!.messageEndPoint.client.close();
+    // connectionHandler.close();
+    // connectionHandler.dispose();
+    // innerClient!.close();
+    // innerClient!.messageEndPoint.client.close();
     super.dispose();
   }
 
@@ -89,18 +83,20 @@ class _MyHomePageState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
+    print('trying');
     String messageText = _messageController.text.trim();
     if (messageText != '') {
       Message message = Message(
+          channel: widget.to.uid,
           content: messageText,
-          // send_by: widget.user.uid,
+          send_by: me!.uid,
           replayto: replyMessage != null ? replyMessage!.id : null,
+          sent_at: DateTime.now(),
           seen_by: []);
-      if (connectionHandler.status.status.index == 0) {
-        await innerClient!.messageEndPoint.sendStreamMessage(message);
-        _messageController.text = '';
-        replyMessage = null;
-      }
+      conn.send(message.toJson());
+      DBProvider.db.addMessage(message);
+      _messageController.text = '';
+      replyMessage = null;
     }
   }
 
@@ -121,7 +117,7 @@ class _MyHomePageState extends State<ChatScreen> {
                 TextButton(
                     onPressed: () => onRole(),
                     child: Text(
-                      widget.to,
+                      widget.to.name,
                       // style: const TextStyle(color: Colors.white),
                     )),
               ],
@@ -267,7 +263,7 @@ class _MyHomePageState extends State<ChatScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: TextField(
-                              onSubmitted: ((value) => _sendMessage()),
+                              onSubmitted: ((value) => _sendMessage),
                               controller: _messageController,
                               style: const TextStyle(
                                   fontSize: 20.0, color: Colors.black87),
@@ -289,7 +285,7 @@ class _MyHomePageState extends State<ChatScreen> {
                       Material(
                         color: Colors.transparent,
                         child: IconButton(
-                            onPressed: () => _sendMessage(),
+                            onPressed: _sendMessage,
                             icon: const Icon(
                               Icons.send,
                               // color: Colors.deepOrange,

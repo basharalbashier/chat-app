@@ -1,6 +1,13 @@
+import 'dart:io';
+
 import 'package:chat/controllers/db_controller.dart';
+import 'package:chat/helpers/http_get.dart';
+import 'package:chat/modules/peer_client.dart';
+import 'package:chat/modules/show_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:test_client/test_client.dart';
 import '../controllers/signup_controller.dart';
 import '../helpers/router.dart';
@@ -16,20 +23,48 @@ class ListUsers extends StatefulWidget {
 }
 
 class _ListUsersState extends State<ListUsers> {
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
+
+  void foo(String id) async => await httpGetRequest(id).then((value) {
+        value['uid'] = value['id'].toString();
+        value['id'] = null;
+        var user = User.fromJson(value, Protocol());
+        DBProvider.db.addUser(user, false);
+        controller!.dispose();
+        move(context, true, ChatScreen(to: user));
+      });
   @override
   void initState() {
-    setMe();
-    _getMessages();
+    DBProvider.db.listMessages();
+
+    // foo("113453572915198993517");
     super.initState();
   }
 
-  _getMessages() async => await DBProvider.db
-      .listChannels()
-      .then((value) => setState(() => messages = value));
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    try {
+      controller.scannedDataStream.listen((scanData) async {
+        if (scanData.code!.isNotEmpty) {
+          foo(scanData.code!);
+        }
+      });
+    } catch (e) {
+      controller.dispose();
+      showSnackbar("Error: $e");
+    }
+  }
+
   List<Message> messages = [];
-  User? me;
-  setMe() async =>
-      await DBProvider.db.getMe().then((value) => setState(() => me = value));
+  User? me = PeerClient.client.me;
+
   @override
   Widget build(BuildContext context) {
     var _dx = Get.put(Channels());
@@ -37,7 +72,44 @@ class _ListUsersState extends State<ListUsers> {
 
     return Scaffold(
         appBar: AppBar(
-          title: Text(me != null ? 'I am ${me!.name}' : ""),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(me != null ? 'I am ${me!.name}' : ""),
+              IconButton(
+                  onPressed: () => showDialog(
+                      barrierColor: Colors.white,
+                      context: context,
+                      builder: (context) => Center(
+                            child: SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: QrImageView(
+                                foregroundColor: Theme.of(context).primaryColor,
+                                data: PeerClient.client.me!.uid!,
+                                version: QrVersions.auto,
+                                size: 200,
+                              ),
+                            ),
+                          )),
+                  icon: const Icon(Icons.qr_code))
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => showDialog(
+              context: context,
+              builder: (context) => Center(
+                    child: SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: QRView(
+                        key: qrKey,
+                        onQRViewCreated: _onQRViewCreated,
+                      ),
+                    ),
+                  )),
+          child: const Icon(Icons.qr_code_scanner),
         ),
         body: Obx(
           () => ListView.builder(
@@ -48,26 +120,27 @@ class _ListUsersState extends State<ListUsers> {
                   context,
                   true,
                   ChatScreen(
-                    to: _dx.channels[index].channel!,
+                    to: _dx.channels[index],
                     // peer: peer,
                   ),
                 ),
                 child: Column(
                   children: [
                     Padding(
-                      padding: EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(8.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: CircleAvatar(
-                                // child:
-                                //     Image.network(_dx.users[index].photourl ?? ""),
-                                ),
+                              child: Text(_dx.channels[index].name[0]),
+                            ),
                           ),
 
-                          Text(_dx.channels[index].channel!),
+                          Text(_dx.channels[index].uid == me!.uid
+                              ? "Me"
+                              : _dx.channels[index].name),
                           // CircleAvatar(
                           //   radius: 5,
                           //   backgroundColor: _dx.users[index].status == null ||
