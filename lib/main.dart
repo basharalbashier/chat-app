@@ -1,3 +1,4 @@
+import 'package:chat/controllers/notification_controller.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:get/get.dart';
@@ -51,6 +52,7 @@ void main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
+  NotificationController.notificationController.init();
   runApp(const MyApp());
 }
 

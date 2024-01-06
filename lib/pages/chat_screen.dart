@@ -1,10 +1,12 @@
-// import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/modules/peer_client.dart';
+import 'package:chat/modules/show_snackbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 
 import '../helpers/router.dart';
@@ -13,7 +15,7 @@ import '../widgets/message_widget.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.to});
-// final Peer peer;
+
   final User to;
 
   @override
@@ -24,55 +26,23 @@ class _MyHomePageState extends State<ChatScreen> {
   User? me = PeerClient.client.me;
   final TextEditingController _messageController = TextEditingController();
   ScrollController? _controller;
-  // late final StreamingConnectionHandler connectionHandler;
+
   bool emojiShowing = false;
-  // Conversation? conversation;
-  // Client? innerClient;
-  var conn;
+
   @override
   void initState() {
-    conn = PeerClient.client.peer!.connect(widget.to.uid!);
-
-    // innerClient = Client("$url/?id={.uid}&&to=${widget.to.uid}&&key=chat/")
-    //   ..connectivityMonitor = FlutterConnectivityMonitor();
-    // connectionHandler = StreamingConnectionHandler(
-    //   client: innerClient!,
-    //   listener: (connectionState) {
-    //     if (mounted) {
-    //       setState(() {});
-    //     }
-    //   },
-    // );
-    // // client.openStreamingConnection();
-    // connectionHandler.connect();
-    // _listenToUpdates();
+    PeerClient.client.connect(widget.to.uid!);
     _controller = ScrollController();
-
+    print(PeerClient.client.connectedPeers);
     super.initState();
   }
 
   @override
   void dispose() {
-    // connectionHandler.close();
-    // connectionHandler.dispose();
-    // innerClient!.close();
-    // innerClient!.messageEndPoint.client.close();
     super.dispose();
   }
 
   Message? replyMessage;
-
-  // Future<void> _listenToUpdates() async {
-  //   await for (var update in innerClient!.messageEndPoint.stream) {
-  //     if (update is Message) {
-  //       if (update.id == null || getReplay(update.id!).id == 0) {
-  //         setState(() {
-  //           MessagesModel.messages.add(update);
-  //         });
-  //       }
-  //     }
-  //   }
-  // }
 
   onRole() {
     _controller!.animateTo(
@@ -82,8 +52,7 @@ class _MyHomePageState extends State<ChatScreen> {
     );
   }
 
-  void _sendMessage() async {
-    print('trying');
+  void _sendMessage() {
     String messageText = _messageController.text.trim();
     if (messageText != '') {
       Message message = Message(
@@ -93,8 +62,25 @@ class _MyHomePageState extends State<ChatScreen> {
           replayto: replyMessage != null ? replyMessage!.id : null,
           sent_at: DateTime.now(),
           seen_by: []);
-      conn.send(message.toJson());
-      DBProvider.db.addMessage(message);
+
+      PeerClient.client.sendMessageToPeer(message);
+    }
+  }
+
+  void sendMessage() async {
+    String messageText = _messageController.text.trim();
+    if (messageText != '') {
+      Message message = Message(
+          channel: widget.to.uid,
+          content: messageText,
+          send_by: me!.uid,
+          replayto: replyMessage != null ? replyMessage!.id : null,
+          sent_at: DateTime.now(),
+          seen_by: []);
+
+      await DBProvider.db.addMessage(message, true);
+      await DBProvider.db.listMessages();
+
       _messageController.text = '';
       replyMessage = null;
     }
@@ -104,10 +90,10 @@ class _MyHomePageState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     Size? size = MediaQuery.maybeOf(context)?.size;
     var messagesModel = Get.put(MessagesModel()).messages;
+
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
-        // backgroundColor: Colors.deepOrangeAccent,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -118,7 +104,6 @@ class _MyHomePageState extends State<ChatScreen> {
                     onPressed: () => onRole(),
                     child: Text(
                       widget.to.name,
-                      // style: const TextStyle(color: Colors.white),
                     )),
               ],
             ),
@@ -129,23 +114,10 @@ class _MyHomePageState extends State<ChatScreen> {
                           context,
                           true,
                           Container(),
-                          // CallScreen(
-                          //   user: widget.user,
-                          //   to: widget.to,
-                          //   isVideo: false,
-                          //   // peer:widget.peer
-                          // )
                         ),
                     icon: const Icon(Icons.call)),
                 IconButton(
-                    onPressed: () => move(context, true, Container()
-                        // CallScreen(
-                        //   user: widget.user,
-                        //   to: widget.to,
-                        //   isVideo: true,
-                        //   // peer:widget.peer
-                        // )
-                        ),
+                    onPressed: () => move(context, true, Container()),
                     icon: const Icon(Icons.video_call))
               ],
             )
@@ -167,8 +139,7 @@ class _MyHomePageState extends State<ChatScreen> {
                 Message message =
                     messagesModel[messagesModel.length - index - 1];
 
-                // print(message);
-                return message.channel == widget.to
+                return message.channel == widget.to.uid
                     ? Dismissible(
                         confirmDismiss: (direction) async {
                           setState(() {
@@ -176,14 +147,8 @@ class _MyHomePageState extends State<ChatScreen> {
                           });
                           return false;
                         },
-
-                        //   // Then show a snackbar.
-                        //   ScaffoldMessenger.of(context)
-                        //       .showSnackBar(SnackBar(content: Text('dismissed')));
-                        // },
                         key: Key(message.toString()),
-                        child: (message.send_by ==
-                                PeerClient.client.me!.uid /*widget.user.uid*/)
+                        child: (message.send_by == PeerClient.client.me!.uid)
                             ? myMessage(message, true, size)
                             : myMessage(message, false, size))
                     : Container();
@@ -191,7 +156,6 @@ class _MyHomePageState extends State<ChatScreen> {
             ),
           )),
           Container(
-              // height: size!.height / (replyMessage != null ? 3 : 6),
               color: Colors.white.withOpacity(.7),
               child: Column(
                 children: [
@@ -231,9 +195,7 @@ class _MyHomePageState extends State<ChatScreen> {
                                   width: size!.width - 20,
                                   child: Text(
                                     replyMessage?.content ?? "",
-                                    style: const TextStyle(
-                                        // fontWeight: FontWeight.bold,
-                                        color: Colors.grey),
+                                    style: const TextStyle(color: Colors.grey),
                                     overflow: TextOverflow.ellipsis,
                                     softWrap: true,
                                   ),
@@ -255,7 +217,6 @@ class _MyHomePageState extends State<ChatScreen> {
                           },
                           icon: const Icon(
                             Icons.emoji_emotions,
-                            // color: Colors.deepOrange,
                           ),
                         ),
                       ),
@@ -288,7 +249,6 @@ class _MyHomePageState extends State<ChatScreen> {
                             onPressed: _sendMessage,
                             icon: const Icon(
                               Icons.send,
-                              // color: Colors.deepOrange,
                             )),
                       )
                     ],
@@ -300,46 +260,7 @@ class _MyHomePageState extends State<ChatScreen> {
               child: SizedBox(
                 height: size.height / 4,
                 child: Container(),
-              )
-              //  EmojiPicker(
-              //   textEditingController: _messageController,
-              //   onBackspacePressed: _onBackspacePressed,
-              //   config: Config(
-              //     columns: 7,
-              //     // Issue: https://github.com/flutter/flutter/issues/28894
-              //     emojiSizeMax: 32 *
-              //         (foundation.defaultTargetPlatform == TargetPlatform.iOS
-              //             ? 1.30
-              //             : 1.0),
-              //     verticalSpacing: 0,
-              //     horizontalSpacing: 0,
-              //     gridPadding: EdgeInsets.zero,
-              //     // initCategory: Category.RECENT,
-              //     bgColor: const Color(0xFFF2F2F2),
-              //     indicatorColor: Colors.deepOrange,
-              //     iconColor: Colors.grey,
-              //     iconColorSelected: Colors.deepOrange,
-              //     backspaceColor: Colors.deepOrange,
-              //     skinToneDialogBgColor: Colors.white,
-              //     skinToneIndicatorColor: Colors.grey,
-              //     enableSkinTones: true,
-              //     recentTabBehavior: RecentTabBehavior.RECENT,
-              //     recentsLimit: 28,
-              //     replaceEmojiOnLimitExceed: false,
-              //     noRecents: const Text(
-              //       'No Recents',
-              //       style: TextStyle(fontSize: 20, color: Colors.black26),
-              //       textAlign: TextAlign.center,
-              //     ),
-              //     loadingIndicator: const SizedBox.shrink(),
-              //     tabIndicatorAnimDuration: kTabScrollDuration,
-              //     categoryIcons: const CategoryIcons(),
-              //     buttonMode: ButtonMode.MATERIAL,
-              //     checkPlatformCompatibility: true,
-              //   ),
-              // )),
-
-              ),
+              )),
         ],
       ),
     );

@@ -26,14 +26,6 @@ class _ListUsersState extends State<ListUsers> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
 
-  void foo(String id) async => await httpGetRequest(id).then((value) {
-        value['uid'] = value['id'].toString();
-        value['id'] = null;
-        var user = User.fromJson(value, Protocol());
-        DBProvider.db.addUser(user, false);
-        controller!.dispose();
-        move(context, true, ChatScreen(to: user));
-      });
   @override
   void initState() {
     DBProvider.db.listMessages();
@@ -53,7 +45,8 @@ class _ListUsersState extends State<ListUsers> {
     try {
       controller.scannedDataStream.listen((scanData) async {
         if (scanData.code!.isNotEmpty) {
-          foo(scanData.code!);
+          var user = await fetchUser(scanData.code!);
+          move(context, true, ChatScreen(to: user));
         }
       });
     } catch (e) {
@@ -68,7 +61,7 @@ class _ListUsersState extends State<ListUsers> {
   @override
   Widget build(BuildContext context) {
     var _dx = Get.put(Channels());
-    // _dx.users.removeWhere((element) => me!.uid == element.uid);
+    _dx.channels.removeWhere((element) => me!.uid == element.uid);
 
     return Scaffold(
         appBar: AppBar(
@@ -160,3 +153,12 @@ class _ListUsersState extends State<ListUsers> {
         ));
   }
 }
+
+Future<User> fetchUser(String id) async =>
+    await httpGetRequest(id).then((value) {
+      value['uid'] = value['id'].toString();
+      value['id'] = null;
+      var user = User.fromJson(value, Protocol());
+      DBProvider.db.addUser(user, false);
+      return user;
+    });

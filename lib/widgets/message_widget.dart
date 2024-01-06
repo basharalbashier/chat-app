@@ -1,3 +1,4 @@
+import 'package:chat/modules/peer_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_bubble/chat_bubble.dart';
 import 'package:test_client/test_client.dart';
@@ -18,18 +19,45 @@ Widget myMessage(Message message, bool isMe, size) {
         crossAxisAlignment:
             !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Visibility(visible: isMe, child: checkIfSentWidget(message)),
+              Text(amOrPm(message.sent_at.toString(), false),
+                  style: const TextStyle(color: Colors.grey, fontSize: 10)),
+            ],
+          ),
           message.replayto != null
               ? replayWidget(isMe, message.replayto, size)
               : Visibility(
                   visible: false,
                   child: Container(),
                 ),
-          Text(amOrPm(message.sent_at.toString(), false),
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
           Text(message.content,
-              style: const TextStyle(color: Colors.black, fontSize: 16))
+              style: const TextStyle(color: Colors.black, fontSize: 16)),
         ],
       ),
     ),
+  );
+}
+
+Widget checkIfSentWidget(Message message) {
+  bool isSent = message.isSent == "true" ? true : false;
+  if (!isSent && message.send_by == PeerClient.client.me!.uid) {
+    PeerClient.client.sendMessageToPeer(message);
+  }
+  return Padding(
+    padding: const EdgeInsets.only(right: 8.0),
+    child: isSent
+        ? const Icon(
+            Icons.check,
+            size: 15,
+          )
+        : const SizedBox(
+            width: 5,
+            height: 5,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+            )),
   );
 }

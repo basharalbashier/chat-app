@@ -1,16 +1,14 @@
 import 'dart:io';
 import 'package:chat/helpers/http_post.dart';
 import 'package:chat/modules/message.dart';
+import 'package:chat/modules/show_snackbar.dart';
 import 'package:chat/modules/users.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get/route_manager.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:peerdart/peerdart.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:test_client/test_client.dart';
-import '../helpers/constant.dart';
 import '../modules/peer_client.dart';
 import '../pages/list_users.dart';
 
@@ -36,7 +34,7 @@ class DBProvider {
       'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT)';
 
   String messagesTable =
-      'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_at TEXT,seen_at TEXT)';
+      'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_at TEXT,seen_at TEXT,isSent TEXT,replayto TEXT)';
 
   initDB() async {
     if (Platform.isAndroid || Platform.isIOS) {
@@ -88,51 +86,56 @@ $messagesTable
 
   Future<void> addUser(User user, bool isMe) async {
     final db = await database;
-    isMe ? await db.rawDelete("Delete from $usersTabeName WHERE id=1") : null;
+    try {
+      isMe ? await db.rawDelete("Delete from $usersTabeName WHERE id=1") : null;
 
-    !isMe
-        ? await db
-            .rawQuery("SELECT * FROM $usersTabeName")
-            .then((result) async {
-            bool exist = false;
-            for (var i in result) {
-              if (i['uid'] == user.uid) {
-                exist = true;
+      !isMe
+          ? await db
+              .rawQuery("SELECT * FROM $usersTabeName")
+              .then((result) async {
+              bool exist = false;
+              for (var i in result) {
+                if (i['uid'] == user.uid) {
+                  exist = true;
+                }
               }
-            }
-            if (!exist) {
-              user.id = result.length + 1;
-              await db.rawInsert(
-                  "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
-                  " VALUES (?,?,?,?,?)",
-                  [user.id, user.uid, user.name, user.email, user.photoUrl]);
-              _dx.updateUsers(user);
-            }
-          })
-        : null;
+              if (!exist) {
+                user.id = result.length + 1;
+                await db.rawInsert(
+                    "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+                    " VALUES (?,?,?,?,?)",
+                    [user.id, user.uid, user.name, user.email, user.photoUrl]);
+                _dx.updateUsers(user);
+              }
+            })
+          : null;
 
-    isMe
-        ? await db.rawInsert(
-            "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
-            " VALUES (?,?,?,?,?)",
-            [1, user.uid, user.name, user.email, user.photoUrl])
-        : null;
-    isMe ? await httpPostRequest(user.toJson()) : null;
-
-    isMe ? Get.offAll(() => const ListUsers()) : null;
+      isMe
+          ? await db.rawInsert(
+              "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+              " VALUES (?,?,?,?,?)",
+              [1, user.uid, user.name, user.email, user.photoUrl])
+          : null;
+      isMe ? await httpPostRequest(user.toJson()) : null;
+      isMe ? PeerClient.client.me = user : null;
+      isMe ? Get.offAll(() => const ListUsers()) : null;
+    } catch (e) {
+      showSnackbar(e.toString());
+    }
   }
 
-  Future<Message> addMessage(Message message) async {
-    print(message);
+  Future<Message> addMessage(Message message, bool? isSent) async {
     final db = await database;
     await db.rawInsert(
-        "INSERT Into $messagesTableName (channel,content,sender,sent_at)"
-        " VALUES (?,?,?,?)",
+        "INSERT Into $messagesTableName (channel,content,sender,sent_at,isSent,replayto)"
+        " VALUES (?,?,?,?,?,?)",
         [
           message.channel,
           message.content,
           message.send_by,
-          message.sent_at.toString()
+          message.sent_at.toString(),
+          isSent.toString(),
+          message.replayto.toString()
         ]);
     return message;
     // await client.userEndPoint.store(userFromHere);
@@ -146,10 +149,18 @@ $messagesTable
     messagesModel.clear();
     for (var i in result) {
       Map<String, dynamic> one = Map.of(i);
+      var isThere = _dx.channels.where((p0) => p0.uid == one['channel']);
+      if (isThere.isEmpty) {
+        var user = await fetchUser(one['channel']);
+        _dx.updateUsers(user);
+        addUser(user, false);
+      }
       one["seen_by"] = [];
+      one['send_by'] = i['sender'];
+      one['replayto'] =
+          i['replayto'] == 'null' ? null : int.parse(i['replayto'].toString());
       var message = Message.fromJson(one, Protocol());
       messagesModel.updateMessages(message);
-      print(message);
       // var check =
       //     messages.where((element) => element.channel == message.channel);
       // if (check.isEmpty) {
@@ -157,6 +168,16 @@ $messagesTable
       // }
     }
     return messages;
+  }
+
+  Future<void> setMessageAsSent(Message message) async {
+    final db = await database;
+    await db.rawUpdate('''
+      UPDATE $messagesTableName SET
+     isSent = ?
+      WHERE id = ?
+      ''', [true.toString(), message.id]);
+    listMessages();
   }
   // showToast(a, e, la) {
   //   Fluttertoast.showToast(
