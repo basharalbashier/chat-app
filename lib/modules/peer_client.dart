@@ -62,6 +62,8 @@ class PeerClient {
     if (isConnected) {
       showSnackbar("$peer is Connected");
     } else {
+      showSnackbar("Connecting to $peer");
+
       try {
         dataConnection = PeerClient.client.peer!.connect(peer);
         dataConnection!.on("open").listen((event) {
@@ -104,27 +106,24 @@ class PeerClient {
         showSnackbar(e.toString());
       }
     } else {
-      showSnackbar("RECONNECTING ...");
+
+      // await DBProvider.db.addMessage(message, false);
+      // await DBProvider.db.listMessages();
       await connect(message.channel!);
     }
   }
 
-  String previeusMessage = '';
   void recievedData(data) {
-    print(connectedPeers);
-    if (data != previeusMessage) {
-      // showSnackbar(data);
-      var message = Message(
-          content: data,
-          seen_by: [],
-          channel: dataConnection!.peer,
-          send_by: dataConnection!.peer,
-          sent_at: DateTime.now());
-      DBProvider.db.addMessage(message, null);
-      DBProvider.db.listMessages();
-      NotificationController.notificationController
-          .showNotificationWithActions(message);
-      // previeusMessage = data;
-    }
+    var message = Message(
+        content: data,
+        seen_by: [],
+        channel: dataConnection!.peer,
+        send_by: dataConnection!.peer,
+        sent_at: DateTime.now());
+    DBProvider.db.addMessage(message, null);
+    DBProvider.db.listMessages();
+    NotificationController.notificationController
+        .showNotificationWithActions(message);
+    // previeusMessage = data;
   }
 }

@@ -4,7 +4,6 @@ import 'package:chat/modules/message.dart';
 import 'package:chat/modules/show_snackbar.dart';
 import 'package:chat/modules/users.dart';
 import 'package:get/get.dart';
-import 'package:get/route_manager.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -179,6 +178,16 @@ $messagesTable
       ''', [true.toString(), message.id]);
     listMessages();
   }
+
+  Future<User> getUser(String uid) async {
+    User user=User(name: "Someone");
+    var db = await database;
+        var res = await db.query(usersTabeName, where: "uid = ?", whereArgs: [uid]);
+
+    user = User.fromJson(res.first, Protocol());
+    return user;
+  }
+
   // showToast(a, e, la) {
   //   Fluttertoast.showToast(
   //       msg: la ? a : e,
@@ -377,20 +386,20 @@ $messagesTable
 //     }
 //   }
 
-//   Future<List<dynamic>> getAllOffers(int id) async {
-//     print('caled');
-//     final db = await database;
-//     // var oo = await db.query("ser_of");
-//     var res = id != 0
-//         ? await db.query("ser_of",
-//             orderBy: "liked" + " DESC",
-//             where: "category_id = ?",
-//             whereArgs: [id])
-//         : await db.query("ser_of", orderBy: "liked" + " DESC", limit: 10);
+  Future<List<dynamic>> getAllOffers(int id) async {
+    print('caled');
+    final db = await database;
+    // var oo = await db.query("ser_of");
+    var res = id != 0
+        ? await db.query("ser_of",
+            orderBy: "liked" + " DESC",
+            where: "category_id = ?",
+            whereArgs: [id])
+        : await db.query("ser_of", orderBy: "liked" + " DESC", limit: 10);
 
-// //  print(oo);
-//     return res;
-//   }
+//  print(oo);
+    return res;
+  }
 
 //   add_offers(url) async {
 //     final db = await database;

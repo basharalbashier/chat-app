@@ -12,6 +12,7 @@ import 'package:test_client/test_client.dart';
 import '../helpers/router.dart';
 import '../modules/message.dart';
 import '../widgets/message_widget.dart';
+import 'call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.to});
@@ -52,7 +53,7 @@ class _MyHomePageState extends State<ChatScreen> {
     );
   }
 
-  void _sendMessage() {
+  void _sendMessage()async {
     String messageText = _messageController.text.trim();
     if (messageText != '') {
       Message message = Message(
@@ -63,28 +64,28 @@ class _MyHomePageState extends State<ChatScreen> {
           sent_at: DateTime.now(),
           seen_by: []);
 
-      PeerClient.client.sendMessageToPeer(message);
+   await PeerClient.client.sendMessageToPeer(message);
     }
   }
-
-  void sendMessage() async {
-    String messageText = _messageController.text.trim();
-    if (messageText != '') {
-      Message message = Message(
-          channel: widget.to.uid,
-          content: messageText,
-          send_by: me!.uid,
-          replayto: replyMessage != null ? replyMessage!.id : null,
-          sent_at: DateTime.now(),
-          seen_by: []);
-
-      await DBProvider.db.addMessage(message, true);
-      await DBProvider.db.listMessages();
-
-      _messageController.text = '';
-      replyMessage = null;
-    }
-  }
+  //
+  // void sendMessage() async {
+  //   String messageText = _messageController.text.trim();
+  //   if (messageText != '') {
+  //     Message message = Message(
+  //         channel: widget.to.uid,
+  //         content: messageText,
+  //         send_by: me!.uid,
+  //         replayto: replyMessage != null ? replyMessage!.id : null,
+  //         sent_at: DateTime.now(),
+  //         seen_by: []);
+  //
+  //     await DBProvider.db.addMessage(message, true);
+  //     await DBProvider.db.listMessages();
+  //
+  //     _messageController.text = '';
+  //     replyMessage = null;
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +118,7 @@ class _MyHomePageState extends State<ChatScreen> {
                         ),
                     icon: const Icon(Icons.call)),
                 IconButton(
-                    onPressed: () => move(context, true, Container()),
+                    onPressed: () => move(context, true, CallScreen(to: widget.to,isVideo: true,)),
                     icon: const Icon(Icons.video_call))
               ],
             )

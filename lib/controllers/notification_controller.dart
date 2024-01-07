@@ -3,6 +3,9 @@ import 'package:test_client/test_client.dart' as client;
 import 'package:chat/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:test_client/test_client.dart';
+
+import 'db_controller.dart';
 
 class NotificationController {
   NotificationController._();
@@ -56,6 +59,7 @@ class NotificationController {
   }
 
   Future<void> showNotificationWithActions(client.Message message) async {
+    User user = await DBProvider.db.getUser(message.channel!);
     const AndroidNotificationDetails androidNotificationDetails =
         AndroidNotificationDetails(
       'your channel id',
@@ -66,22 +70,23 @@ class NotificationController {
       ticker: 'ticker',
       actions: <AndroidNotificationAction>[
         AndroidNotificationAction(
-          "urlLaunchActionId",
-          'Action 1',
-          icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
-          contextual: true,
-        ),
-        AndroidNotificationAction(
           'id_2',
-          'Action 2',
+          'cancel',
           titleColor: Color.fromARGB(255, 255, 0, 0),
           icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
         ),
         AndroidNotificationAction(
           navigationActionId,
-          'Action 3',
+          'Replay',
           icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
           showsUserInterface: true,
+          allowGeneratedReplies: true,
+          inputs: [
+            AndroidNotificationActionInput(
+              allowFreeFormInput: true
+            )
+          ],
+
           // By default, Android plugin will dismiss the notification when the
           // user tapped on a action (this mimics the behavior on iOS).
           cancelNotification: false,
@@ -92,8 +97,9 @@ class NotificationController {
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidNotificationDetails,
     );
+
     await flutterLocalNotificationsPlugin.show(message.content.hashCode,
-        'plain title', message.content, notificationDetails,
+        user.name, message.content, notificationDetails,
         payload: 'item z');
   }
 }

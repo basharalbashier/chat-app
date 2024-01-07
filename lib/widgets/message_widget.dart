@@ -43,9 +43,9 @@ Widget myMessage(Message message, bool isMe, size) {
 
 Widget checkIfSentWidget(Message message) {
   bool isSent = message.isSent == "true" ? true : false;
-  if (!isSent && message.send_by == PeerClient.client.me!.uid) {
-    PeerClient.client.sendMessageToPeer(message);
-  }
+  // if (!isSent && message.send_by == PeerClient.client.me!.uid) {
+  //   PeerClient.client.sendMessageToPeer(message);
+  // }
   return Padding(
     padding: const EdgeInsets.only(right: 8.0),
     child: isSent

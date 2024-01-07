@@ -1,277 +1,234 @@
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_webrtc/flutter_webrtc.dart';
-// import 'package:peerdart/peerdart.dart';
-// import 'package:test_client/test_client.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:peerdart/peerdart.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:test_client/test_client.dart';
 
-// import '../modules/peer_client.dart';
+import '../modules/peer_client.dart';
+import '../widgets/daraggable_widget.dart';
 
-// class CallScreen extends StatefulWidget {
-//   const CallScreen({
-//     super.key,
-//     required this.user,
-//     required this.to,
-//     required this.isVideo,
-//   });
-//   final User user;
-//   // final Peer peer;
-//   final User to;
-//   final bool isVideo;
-//   @override
-//   State<CallScreen> createState() => _CallScreenState();
-// }
+class CallScreen extends StatefulWidget {
+  const CallScreen({
+    super.key,
+    required this.to,
+    required this.isVideo,
+  });
 
-// class _CallScreenState extends State<CallScreen> {
-//   bool isVideo = false;
-//   bool isAudio = false;
+  final User to;
+  final bool isVideo;
+  @override
+  State<CallScreen> createState() => _CallScreenState();
+}
 
-//   bool inCall = false;
-//   final _localRenderer = RTCVideoRenderer();
-//   final _remoteRenderer = RTCVideoRenderer();
-//   List<MediaDeviceInfo>? _mediaDevicesList;
-//   MediaStream? _localStream;
-//   final Map<String, FrameCryptor> _frameCyrptors = {};
+class _CallScreenState extends State<CallScreen> {
+  bool isVideo = false;
+  bool isAudio = false;
 
-//   @override
-//   void initState() {
-//     isVideo = widget.isVideo;
-//     _localRenderer.initialize();
-//     _remoteRenderer.initialize();
-//     _makeCall;
-//     navigator.mediaDevices.ondevicechange = (event) async {
-//       print('++++++ ondevicechange ++++++');
-//       _mediaDevicesList = await navigator.mediaDevices.enumerateDevices();
-//     };
-//     connect();
-//     super.initState();
-//   }
+  bool inCall = false;
+  final _localRenderer = RTCVideoRenderer();
+  final _remoteRenderer = RTCVideoRenderer();
+  List<MediaDeviceInfo>? _mediaDevicesList = [];
+  MediaStream? _localStream;
+  final Map<String, FrameCryptor> _frameCyrptors = {};
+  String? _selectedVideoInputId;
 
-//   @override
-//   void deactivate() {
-//     super.deactivate();
-//     if (inCall) {
-//       _hangUp(isVideo);
-//     }
-//     _localRenderer.dispose();
-//     navigator.mediaDevices.ondevicechange = null;
-//   }
+  @override
+  void initState() {
+    isVideo = widget.isVideo;
+    _localRenderer.initialize();
 
-//   @override
-//   void dispose() {
-//     _localRenderer.dispose();
-//     _remoteRenderer.dispose();
-//     super.dispose();
-//   }
+    connect();
+    loadDevices();
 
-//   void _stopAudio() async {
-//     _frameCyrptors.removeWhere((key, value) {
-//       if (key.startsWith('audio')) {
-//         value.dispose();
-//         return true;
-//       }
-//       return false;
-//     });
-//     await _removeExistingAudioTrack(fromConnection: true);
-//     // await _negotiate();
-//     setState(() {
-//       // _micOn = false;
-//     });
-//   }
+    super.initState();
+  }
 
-//   Future<void> _removeExistingAudioTrack({bool fromConnection = false}) async {
-//     var tracks = _localStream!.getAudioTracks();
-//     for (var i = tracks.length - 1; i >= 0; i--) {
-//       var track = tracks[i];
-//       if (fromConnection) {
-//         await _connectionRemoveTrack(track);
-//       }
-//       await _localStream!.removeTrack(track);
-//       await track.stop();
-//     }
-//   }
+  List<MediaDeviceInfo> get videoInputs => _mediaDevicesList!
+      .where((device) => device.kind == 'videoinput')
+      .toList();
+  Future<void> loadDevices() async {
+    if (WebRTC.platformIsAndroid || WebRTC.platformIsIOS) {
+      var status = await Permission.bluetooth.request();
+      if (status.isPermanentlyDenied) {
+        print('BLEpermdisabled');
+      }
 
-//   Future<void> _connectionRemoveTrack(MediaStreamTrack track) async {
-//     // var sender = track.kind == 'video' ? _videoSender : _audioSender;
-//     // if (sender != null) {
-//     //   print('Have a Sender of kind:${track.kind}');
-//     //   var trans = await _getSendersTransceiver(sender.senderId);
-//     //   if (trans != null) {
-//     //     print('Setting direction and replacing track with null');
-//     //     await trans.setDirection(TransceiverDirection.Inactive);
-//     //     await trans.sender.replaceTrack(null);
-//     //   }
-//     // }
-//   }
-//   Future<RTCRtpTransceiver?> _getSendersTransceiver(String senderId) async {
-//     RTCRtpTransceiver? foundTrans;
-//     // var trans = await PeerClient.peerClient.peer?.getTransceivers();
-//     // for (var tran in trans) {
-//     //   if (tran.sender.senderId == senderId) {
-//     //     foundTrans = tran;
-//     //     break;
-//     //   }
-//     // }
-//     return foundTrans;
-//   }
+      status = await Permission.bluetoothConnect.request();
+      if (status.isPermanentlyDenied) {
+        print('ConnectPermdisabled');
+      }
+    }
+    final devices = await navigator.mediaDevices.enumerateDevices();
+    setState(() {
+      _mediaDevicesList = devices;
+    });
+  }
 
-//   void _makeCall() async {
-//     final mediaConstraints = <String, dynamic>{
-//       'audio': true,
-//       'video': {
-//         'mandatory': {
-//           // 'minWidth':
-//           //     '${size.width}', // Provide your own width, height and frame rate here
-//           // 'minHeight': '${size.height}',
-//           'minFrameRate': '30',
-//         },
-//         'facingMode': 'user',
-//         'optional': [],
-//       }
-//     };
+  @override
+  void dispose() {
+    _localRenderer.dispose();
+    _localRenderer.srcObject!.dispose();
 
-//     try {
-//       var stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-//       _mediaDevicesList = await navigator.mediaDevices.enumerateDevices();
-//       _localStream = stream;
-//       _localRenderer.srcObject = _localStream;
-//     } catch (e) {
-//       print(e.toString());
-//     }
-//     if (!mounted) return;
+    navigator.mediaDevices.ondevicechange = null;
+    super.dispose();
+  }
 
-//     // setState(() {
-//     //   _inCalling = true;
-//     // });
-//   }
+  void _hangUp(bool isVideo) async {
+    try {
+      _localStream?.getTracks().forEach((track) => track.stop());
 
-//   void _hangUp(bool isVideo) async {
-//     try {
-//       // if (kIsWeb) {
-//       _localStream?.getTracks().forEach((track) => track.stop());
-//       // }
-//       // await _localStream?.dispose();
-//       _localRenderer.srcObject = null;
-//       // setState(() {
-//       //   _inCalling = false;
-//       // });
-//     } catch (e) {
-//       print(e.toString());
-//     }
-//   }
+      _localRenderer.srcObject = null;
+    } catch (e) {
+      print(e.toString());
+    }
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     Size size = MediaQuery.of(context).size;
-//     if (_localRenderer.srcObject == null && isVideo) {
-//       return Center(
-//         child: CircularProgressIndicator.adaptive(),
-//       );
-//     }
-//     return Scaffold(
-//         // appBar: AppBar(
-//         //   elevation: 0.0,
-//         // ),
-//         backgroundColor: Colors.transparent.withOpacity(.1),
-//         body: Stack(
-//           children: [
-//             isVideo
-//                 ? RTCVideoView(
-//                     _localRenderer,
-//                     mirror: true,
-//                     objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-//                   )
-//                 : Container(
-//                     decoration: const BoxDecoration(
-//                         gradient: LinearGradient(
-//                       begin: Alignment.topCenter,
-//                       end: Alignment.bottomCenter,
-//                       colors: [Colors.deepOrange, Colors.cyan],
-//                     )),
-//                     child: Align(
-//                         alignment: Alignment.center,
-//                         child: Column(
-//                           // mainAxisAlignment: MainAxisAlignment.center,
-//                           children: [
-//                             CircleAvatar(
-//                               radius: (size.height / size.width) * 50,
-//                             ),
-//                             Text(
-//                               widget.to.name,
-//                               style: TextStyle(
-//                                   fontWeight: FontWeight.bold,
-//                                   color: Colors.blueGrey.shade900),
-//                             ),
-//                           ],
-//                         )),
-//                   ),
-//             Positioned(
-//                 bottom: -10,
-//                 child: SizedBox(
-//                   width: size.width,
-//                   height: size.height / 12,
-//                   child: Card(
-//                       child: Row(
-//                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-//                     children: [
-//                       IconButton(
-//                           onPressed: () => {},
-//                           icon: Icon(isAudio ? Icons.mic : Icons.mic_off)),
-//                       IconButton(
-//                           onPressed: () => {},
-//                           icon: Icon(Icons.speaker_phone_rounded)),
-//                       IconButton(
-//                           color: Colors.blue,
-//                           onPressed: () => {},
-//                           icon: Icon(Icons.phone_bluetooth_speaker)),
-//                       IconButton(
-//                           onPressed: () {
-//                             setState(() => isVideo = !isVideo);
-//                             _hangUp(isVideo);
-//                           },
-//                           icon: Icon(
-//                               isVideo ? Icons.videocam : Icons.videocam_off)),
-//                       IconButton(
-//                           color: Colors.red,
-//                           onPressed: closeConnection,
-//                           icon: const Icon(Icons.call_end))
-//                     ],
-//                   )),
-//                 ))
-//           ],
-//         ));
-//   }
+  void _changeScreens() => setState(() => screenCase = !screenCase);
 
-//   void closeConnection() {
-//     _localRenderer.srcObject!.dispose();
-//     Navigator.of(context).pop();
-//   }
+  bool screenCase = false;
+  @override
+  Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
 
-//   void connect() async {
-//     final mediaStream = await navigator.mediaDevices
-//         .getUserMedia({"video": isVideo, "audio": true});
-//     _localRenderer.srcObject = mediaStream;
+    return Scaffold(
+        body: Stack(
+      children: [
+        largScreen(
+            context,
+            screenCase
+                ? localStreamWidget(context, ready, _localRenderer)
+                : remoteStramWidget()),
+        GestureDetector(
+            onTap: () => _changeScreens(),
+            child: StatefulDragArea(
+                child: smallScreens(
+                    context,
+                    !screenCase
+                        ? localStreamWidget(context, ready, _localRenderer)
+                        : remoteStramWidget()))),
+        Positioned(
+            bottom: -10,
+            child: SizedBox(
+              width: size.width,
+              height: size.height / 12,
+              child: Card(
+                  child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
+                      onPressed: () => {},
+                      icon: Icon(isAudio ? Icons.mic : Icons.mic_off)),
+                  IconButton(
+                      onPressed: () => {},
+                      icon: Icon(Icons.speaker_phone_rounded)),
+                  IconButton(
+                      color: Colors.blue,
+                      onPressed: () => {},
+                      icon: Icon(Icons.phone_bluetooth_speaker)),
+                  IconButton(
+                      icon: const Icon(Icons.switch_camera_rounded),
+                      onPressed: _toggleVideoInput),
+                  IconButton(
+                      onPressed: () {
+                        setState(() => isVideo = !isVideo);
+                      },
+                      icon:
+                          Icon(isVideo ? Icons.videocam : Icons.videocam_off)),
+                  IconButton(
+                      color: Colors.red,
+                      onPressed: () => {},
+                      icon: const Icon(Icons.call_end))
+                ],
+              )),
+            )),
+        const BackButton(),
+      ],
+    ));
+  }
 
-//     var conn =
-//         PeerClient.peerClient.peer!.call(widget.to.uid.toString(), mediaStream);
-//     conn.options!.constraints = {
-//       // "offerToReceiveAudio": true,
-//       // "offerToReceiveVideo": true,
-//     };
-//     conn.answer(mediaStream);
+  bool ready = false;
 
-//     conn.on("close").listen((event) {
-//       setState(() {
-//         inCall = false;
-//         mediaStream.dispose();
-//       });
-//     });
+  void connect() async {
+    final mediaStream = await navigator.mediaDevices
+        .getUserMedia({"video": isVideo, "audio": true});
+    _localRenderer.srcObject = mediaStream;
+    setState(() {
+      ready = true;
+    });
+  }
 
-//     conn.on<MediaStream>("stream").listen((event) {
-//       _remoteRenderer.srcObject = event;
-//       _localRenderer.srcObject = mediaStream;
-//       setState(() {
-//         inCall = true;
-//       });
-//     });
-//   }
-// }
+  void _toggleVideoInput() async {
+    _selectedVideoInputId =
+        _selectedVideoInputId == _mediaDevicesList![0].deviceId
+            ? _mediaDevicesList![1].deviceId
+            : _selectedVideoInputId == _mediaDevicesList![1].deviceId
+                ? _mediaDevicesList![0].deviceId
+                : _mediaDevicesList![1].deviceId;
+
+    _localRenderer.srcObject = null;
+
+    _localStream?.getTracks().forEach((track) async {
+      await track.stop();
+    });
+    await _localStream?.dispose();
+
+    var newLocalStream = await navigator.mediaDevices.getUserMedia({
+      'audio': true,
+      'video': {
+        if (_selectedVideoInputId != null && kIsWeb)
+          'deviceId': _selectedVideoInputId,
+        if (_selectedVideoInputId != null && !kIsWeb)
+          'optional': [
+            {'sourceId': _selectedVideoInputId}
+          ],
+      },
+    });
+    _localStream = newLocalStream;
+    _localRenderer.srcObject = _localStream;
+  }
+}
+
+Widget largScreen(BuildContext context, Widget child) {
+  var size = MediaQuery.of(context).size;
+  return SizedBox(
+    height: size.height,
+    width: size.width,
+    child: child,
+  );
+}
+
+Widget smallScreens(BuildContext context, Widget child) {
+  var size = MediaQuery.of(context).size;
+  return SizedBox(
+    height: size.height / 4,
+    width: size.width / 3,
+    child: child,
+  );
+}
+
+/**
+ *             Positioned(
+                bottom: 0,
+                child: IconButton(
+                    icon: const Icon(Icons.switch_camera_rounded),
+                    onPressed: change))
+ */
+Widget localStreamWidget(
+    BuildContext context, bool ready, RTCVideoRenderer localRenderer) {
+  return ready
+      ? RTCVideoView(
+          localRenderer,
+          mirror: true,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+        )
+      : const Center(
+          child: CircularProgressIndicator.adaptive(),
+        );
+}
+
+Widget remoteStramWidget() {
+  return const Card(
+    color: Colors.pink,
+  );
+}

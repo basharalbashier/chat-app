@@ -50,6 +50,7 @@ dependencies:
   google_sign_in: ^6.1.6
   qr_flutter: ^4.1.0
   qr_code_scanner: ^1.0.1
+  permission_handler: ^11.1.0
 
 dev_dependencies:
   flutter_lints: ^2.0.1
