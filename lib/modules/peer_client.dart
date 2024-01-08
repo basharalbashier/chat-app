@@ -25,7 +25,7 @@ class PeerClient {
             host: host,
             port: 8080,
             path: "/peer",
-            // debug: LogLevel.All,
+            debug: LogLevel.All,
           ));
 
       peer!.on<MediaConnection>("call").listen((call) async {
@@ -34,7 +34,7 @@ class PeerClient {
       peer!.on<DataConnection>("connection").listen((event) async {
         showSnackbar("${event.peer} is connected ..");
         dataConnection = event;
-        bool isConnected = connectedPeers.contains(peer);
+        bool isConnected = connectedPeers.contains(dataConnection!.peer);
 
         !isConnected
             ? connectedPeers.add(dataConnection!.peer)
