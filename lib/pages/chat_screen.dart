@@ -15,9 +15,8 @@ import '../widgets/message_widget.dart';
 import 'call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.to});
+  const ChatScreen({super.key});
 
-  final User to;
 
   @override
   State<ChatScreen> createState() => _MyHomePageState();
@@ -29,10 +28,10 @@ class _MyHomePageState extends State<ChatScreen> {
   ScrollController? _controller;
 
   bool emojiShowing = false;
-
+var to=PeerClient.client.to;
   @override
   void initState() {
-    PeerClient.client.connect(widget.to.uid!);
+    PeerClient.client.connect(to.value.uid!);
     _controller = ScrollController();
     print(PeerClient.client.connectedPeers);
     super.initState();
@@ -57,7 +56,7 @@ class _MyHomePageState extends State<ChatScreen> {
     String messageText = _messageController.text.trim();
     if (messageText != '') {
       Message message = Message(
-          channel: widget.to.uid,
+          channel: to.value.uid,
           content: messageText,
           send_by: me!.uid,
           replayto: replyMessage != null ? replyMessage!.id : null,
@@ -103,8 +102,16 @@ class _MyHomePageState extends State<ChatScreen> {
               children: [
                 TextButton(
                     onPressed: () => onRole(),
-                    child: Text(
-                      widget.to.name,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                        to.value.name,
+                        ),
+                    Obx(() =>    Text(
+                      to.value.status!/* !="online"?"Last seen ${to.value.status}":"Online"*/,
+                        )),
+                      ],
                     )),
               ],
             ),
@@ -118,7 +125,7 @@ class _MyHomePageState extends State<ChatScreen> {
                         ),
                     icon: const Icon(Icons.call)),
                 IconButton(
-                    onPressed: () => move(context, true, CallScreen(to: widget.to,isVideo: true,)),
+                    onPressed: () => move(context, true, CallScreen(isVideo: true,isCallRec: false,)),
                     icon: const Icon(Icons.video_call))
               ],
             )
@@ -140,7 +147,7 @@ class _MyHomePageState extends State<ChatScreen> {
                 Message message =
                     messagesModel[messagesModel.length - index - 1];
 
-                return message.channel == widget.to.uid
+                return message.channel == to.value.uid
                     ? Dismissible(
                         confirmDismiss: (direction) async {
                           setState(() {

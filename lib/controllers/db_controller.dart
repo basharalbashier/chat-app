@@ -30,7 +30,7 @@ class DBProvider {
   }
 
   String createTableString =
-      'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT)';
+      'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT,status TEXT)';
 
   String messagesTable =
       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_at TEXT,seen_at TEXT,isSent TEXT,replayto TEXT)';
@@ -103,8 +103,13 @@ $messagesTable
                 await db.rawInsert(
                     "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
                     " VALUES (?,?,?,?,?)",
-                    [user.id, user.uid, user.name, user.email, user.photoUrl]);
-                _dx.updateUsers(user);
+                    [
+                      user.id,
+                      user.uid,
+                      user.name,
+                      user.email,
+                      user.photoUrl
+                    ]).then((value) => _dx.updateUsers(user));
               }
             })
           : null;
@@ -180,14 +185,26 @@ $messagesTable
   }
 
   Future<User> getUser(String uid) async {
-    User user=User(name: "Someone");
+    User user = User(name: "Someone");
     var db = await database;
-        var res = await db.query(usersTabeName, where: "uid = ?", whereArgs: [uid]);
+    var res = await db.query(usersTabeName, where: "uid = ?", whereArgs: [uid]);
 
     user = User.fromJson(res.first, Protocol());
     return user;
   }
 
+  Future<void> setUserOnlineOrLastSeen(User user, bool isOnline) async {
+    final db = await database;
+    String value = isOnline ? "Online" : DateTime.now().toString();
+    await db.rawUpdate('''
+      UPDATE $usersTabeName SET
+     status = ?
+      WHERE id = ?
+      ''', [value, user.id]);
+    if(PeerClient.client.to.value.id==user.id){
+      PeerClient.client.to.value=user;
+    }
+  }
   // showToast(a, e, la) {
   //   Fluttertoast.showToast(
   //       msg: la ? a : e,

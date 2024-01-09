@@ -46,7 +46,15 @@ class _ListUsersState extends State<ListUsers> {
       controller.scannedDataStream.listen((scanData) async {
         if (scanData.code!.isNotEmpty) {
           var user = await fetchUser(scanData.code!);
-          move(context, true, ChatScreen(to: user));
+            PeerClient.client.to.value = user;
+            move(
+              context,
+              true,
+              const ChatScreen(
+                // peer: peer,
+              ),
+            );
+
         }
       });
     } catch (e) {
@@ -109,14 +117,16 @@ class _ListUsersState extends State<ListUsers> {
             itemCount: _dx.channels.length,
             itemBuilder: (context, index) {
               return GestureDetector(
-                onTap: () => move(
-                  context,
-                  true,
-                  ChatScreen(
-                    to: _dx.channels[index],
-                    // peer: peer,
-                  ),
-                ),
+                onTap: () {
+                  PeerClient.client.to.value = _dx.channels[index];
+                  move(
+                    context,
+                    true,
+                    const ChatScreen(
+                        // peer: peer,
+                        ),
+                  );
+                },
                 child: Column(
                   children: [
                     Padding(
@@ -158,6 +168,7 @@ Future<User> fetchUser(String id) async =>
     await httpGetRequest(id).then((value) {
       value['uid'] = value['id'].toString();
       value['id'] = null;
+      value['status'] = value['status'].toString();
       var user = User.fromJson(value, Protocol());
       DBProvider.db.addUser(user, false);
       return user;

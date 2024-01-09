@@ -1,6 +1,7 @@
 import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/controllers/notification_controller.dart';
 import 'package:chat/modules/show_snackbar.dart';
+import 'package:get/get.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:test_client/test_client.dart';
 import '../helpers/constant.dart';
@@ -13,6 +14,7 @@ class PeerClient {
   DataConnection? dataConnection;
   bool inCall = false;
   User? me;
+var to=User(name: "name").obs;
   List<String> connectedPeers = [];
   Future<void> init(User user) async {
     me = user;
@@ -32,6 +34,8 @@ class PeerClient {
         showCallDialog(User(name: "name"), call);
       });
       peer!.on<DataConnection>("connection").listen((event) async {
+        DBProvider.db.setUserOnlineOrLastSeen(user, true);
+
         showSnackbar("${event.peer} is connected ..");
         dataConnection = event;
         bool isConnected = connectedPeers.contains(dataConnection!.peer);
@@ -47,6 +51,8 @@ class PeerClient {
         dataConnection!.on("binary").listen((data) {});
 
         dataConnection!.on("close").listen((data) {
+          DBProvider.db.setUserOnlineOrLastSeen(user, false);
+
           showSnackbar("${event.peer} is disconnected ..");
 
           connectedPeers.remove(dataConnection!.peer);
@@ -58,8 +64,12 @@ class PeerClient {
   }
 
   Future<void> connect(String peer) async {
+    User user=await DBProvider.db.getUser(peer);
+
     bool isConnected = connectedPeers.contains(peer);
     if (isConnected) {
+      DBProvider.db.setUserOnlineOrLastSeen(user, true);
+
       showSnackbar("$peer is Connected");
     } else {
       showSnackbar("Connecting to $peer");
@@ -67,16 +77,22 @@ class PeerClient {
       try {
         dataConnection = PeerClient.client.peer!.connect(peer);
         dataConnection!.on("open").listen((event) {
+          DBProvider.db.setUserOnlineOrLastSeen(user, true);
+
           connectedPeers.add(peer);
           connectedPeers = connectedPeers.toSet().toList();
 
           dataConnection!.on("close").listen((event) {
+            DBProvider.db.setUserOnlineOrLastSeen(user, false);
+
             connectedPeers.remove(peer);
           });
           dataConnection!.on("data").listen((data) => recievedData(data));
           dataConnection!.on("binary").listen((data) {});
         });
         dataConnection!.on("close").listen((event) {
+          DBProvider.db.setUserOnlineOrLastSeen(user, false);
+
           connectedPeers.remove(peer);
         });
       } catch (e) {

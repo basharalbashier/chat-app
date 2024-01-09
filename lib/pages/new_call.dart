@@ -1,4 +1,5 @@
 import 'package:chat/pages/awn_call.dart';
+import 'package:chat/pages/call_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:peerdart/peerdart.dart';
@@ -31,10 +32,9 @@ void showCallDialog(User user, call) {
                         IconButton(
                             onPressed: (() {
                               Navigator.of(context).pop();
-                              Get.to(AwnCall(
-                                user: PeerClient.client.me!,
-                                to: user,
-                                isVideo: false,
+                              Get.to(CallScreen(
+                             isCallRec:true ,
+                                isVideo: true,
                                 call: call,
                               ));
                             }),

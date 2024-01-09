@@ -11,12 +11,12 @@ import '../widgets/daraggable_widget.dart';
 class CallScreen extends StatefulWidget {
   const CallScreen({
     super.key,
-    required this.to,
-    required this.isVideo,
+    required this.isVideo, required this.isCallRec, this.call,
   });
 
-  final User to;
   final bool isVideo;
+  final bool isCallRec;
+  final MediaConnection? call;
   @override
   State<CallScreen> createState() => _CallScreenState();
 }
@@ -37,8 +37,8 @@ class _CallScreenState extends State<CallScreen> {
   void initState() {
     isVideo = widget.isVideo;
     _localRenderer.initialize();
-
-    connect();
+_remoteRenderer.initialize();
+    makeDevicesReady();
     loadDevices();
 
     super.initState();
@@ -67,18 +67,21 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
-    _localRenderer.dispose();
-    _localRenderer.srcObject!.dispose();
-
-    navigator.mediaDevices.ondevicechange = null;
+_hangUp(isVideo);
     super.dispose();
   }
 
   void _hangUp(bool isVideo) async {
     try {
+      _localRenderer.dispose();
+      _localRenderer.srcObject!.dispose();
+      _remoteRenderer.dispose();
+      navigator.mediaDevices.ondevicechange = null;
+      Navigator.of(context).pop();
       _localStream?.getTracks().forEach((track) => track.stop());
 
       _localRenderer.srcObject = null;
+
     } catch (e) {
       print(e.toString());
     }
@@ -98,7 +101,7 @@ class _CallScreenState extends State<CallScreen> {
             context,
             screenCase
                 ? localStreamWidget(context, ready, _localRenderer)
-                : remoteStramWidget()),
+                : remoteStramWidget(_remoteRenderer,inCall)),
         GestureDetector(
             onTap: () => _changeScreens(),
             child: StatefulDragArea(
@@ -106,7 +109,7 @@ class _CallScreenState extends State<CallScreen> {
                     context,
                     !screenCase
                         ? localStreamWidget(context, ready, _localRenderer)
-                        : remoteStramWidget()))),
+                        : remoteStramWidget(_remoteRenderer,inCall)))),
         Positioned(
             bottom: -10,
             child: SizedBox(
@@ -137,7 +140,7 @@ class _CallScreenState extends State<CallScreen> {
                           Icon(isVideo ? Icons.videocam : Icons.videocam_off)),
                   IconButton(
                       color: Colors.red,
-                      onPressed: () => {},
+                      onPressed: () => _hangUp(isVideo),
                       icon: const Icon(Icons.call_end))
                 ],
               )),
@@ -149,15 +152,38 @@ class _CallScreenState extends State<CallScreen> {
 
   bool ready = false;
 
-  void connect() async {
+  void makeDevicesReady() async {
     final mediaStream = await navigator.mediaDevices
         .getUserMedia({"video": isVideo, "audio": true});
     _localRenderer.srcObject = mediaStream;
     setState(() {
       ready = true;
     });
+  widget.isCallRec?recieve(mediaStream):call(mediaStream);
   }
+call(mediaStream){
+  final conn =PeerClient.client.peer!.call(PeerClient.client.to.value.uid!, mediaStream);
 
+  conn.on("close").listen((event) {
+    setState(() {
+      mediaStream.dispose();
+      inCall = false;
+    });
+    _hangUp(isVideo);
+  });
+
+  conn.on<MediaStream>("stream").listen((event) async{
+    _remoteRenderer.srcObject = event;
+
+    // print("-----------starting----------------------");
+    setState(() {
+      inCall = true;
+    });
+    // print("-----------ending------------$inCall----------");
+/////////////////////////////////////////////////////////////////////////////////////
+  });
+
+}
   void _toggleVideoInput() async {
     _selectedVideoInputId =
         _selectedVideoInputId == _mediaDevicesList![0].deviceId
@@ -186,6 +212,25 @@ class _CallScreenState extends State<CallScreen> {
     });
     _localStream = newLocalStream;
     _localRenderer.srcObject = _localStream;
+  }
+
+  recieve(MediaStream mediaStream) {
+   widget.call!.answer(mediaStream);
+   widget.call!.on("close").listen((event) {
+     setState(() {
+       mediaStream.dispose();
+       inCall = false;
+     });
+     _hangUp(isVideo);
+   });
+
+  widget.call!.on<MediaStream>("stream").listen((event) {
+      _remoteRenderer.srcObject = event;
+
+      setState(() {
+        inCall = true;
+      });
+    });
   }
 }
 
@@ -227,8 +272,12 @@ Widget localStreamWidget(
         );
 }
 
-Widget remoteStramWidget() {
-  return const Card(
+Widget remoteStramWidget(RTCVideoRenderer remoteRenderer,bool inCall) {
+  return  !inCall? const Card(
     color: Colors.pink,
+  ):RTCVideoView(
+    remoteRenderer,
+    mirror: true,
+    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
   );
 }
