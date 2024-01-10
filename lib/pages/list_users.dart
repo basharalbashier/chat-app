@@ -40,21 +40,13 @@ class _ListUsersState extends State<ListUsers> {
     super.dispose();
   }
 
-  void _onQRViewCreated(QRViewController controller) {
+  void _onQRViewCreated(QRViewController controller,BuildContext context) {
     this.controller = controller;
     try {
       controller.scannedDataStream.listen((scanData) async {
         if (scanData.code!.isNotEmpty) {
-          var user = await fetchUser(scanData.code!);
-            PeerClient.client.to.value = user;
-            move(
-              context,
-              true,
-              const ChatScreen(
-                // peer: peer,
-              ),
-            );
-
+          Navigator.of(context).pop();
+       _fetchAndStartChat(scanData.code);
         }
       });
     } catch (e) {
@@ -97,21 +89,69 @@ class _ListUsersState extends State<ListUsers> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => showDialog(
-              context: context,
-              builder: (context) => Center(
-                    child: SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: QRView(
-                        key: qrKey,
-                        onQRViewCreated: _onQRViewCreated,
-                      ),
-                    ),
-                  )),
-          child: const Icon(Icons.qr_code_scanner),
+        floatingActionButton: PopupMenuButton<String>(
+          itemBuilder: (BuildContext context) {
+            return [
+              PopupMenuItem(
+                child: IconButton(
+                    onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) => Center(
+                              child: SizedBox(
+                                width: 200,
+                                height: 200,
+                                child: QRView(
+                                  key: qrKey,
+                                  onQRViewCreated:(c)=> _onQRViewCreated(c,context),
+                                ),
+                              ),
+                            )),
+                    icon: const Icon(Icons.qr_code_scanner_sharp)),
+              ),
+              PopupMenuItem(
+                child: IconButton(
+                    onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) => Center(
+                          child: SizedBox(
+                            width: 200,
+                            height: 100,
+                            child: Material(
+                              child: TextField(onSubmitted:_fetchAndStartChat ,),
+                            ),
+                          ),
+                        )),
+                    icon: const Icon(Icons.insert_link_sharp)),
+              )
+            ];
+            // return _devices
+            //     .where((device) => device.kind == 'audiooutput')
+            //     .map((device) {
+            //   return PopupMenuItem<String>(
+            //     value: device.deviceId,
+            //     child: Text(device.label),
+            //   );
+            // }).toList();
+          },
         ),
+
+        //
+        // FloatingActionButton(
+        //   onPressed: () => showDialog(
+        //       context: context,
+        //       builder: (context) => Center(
+        //             child: SizedBox(
+        //               width: 200,
+        //               height: 200,
+        //               child: QRView(
+        //                 key: qrKey,
+        //                 onQRViewCreated: _onQRViewCreated,
+        //               ),
+        //             ),
+        //           )),
+        //   child: const Icon(Icons.qr_code_scanner),
+        // ),
+        //
         body: Obx(
           () => ListView.builder(
             itemCount: _dx.channels.length,
@@ -161,6 +201,18 @@ class _ListUsersState extends State<ListUsers> {
             },
           ),
         ));
+  }
+
+  void _fetchAndStartChat(String? code) async{
+    var user = await fetchUser(code!);
+    PeerClient.client.to.value = user;
+    move(
+      context,
+      true,
+      const ChatScreen(
+        // peer: peer,
+      ),
+    );
   }
 }
 

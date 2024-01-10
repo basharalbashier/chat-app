@@ -14,7 +14,7 @@ class PeerClient {
   DataConnection? dataConnection;
   bool inCall = false;
   User? me;
-var to=User(name: "name").obs;
+  var to = User(name: "name").obs;
   List<String> connectedPeers = [];
   Future<void> init(User user) async {
     me = user;
@@ -34,29 +34,8 @@ var to=User(name: "name").obs;
         showCallDialog(User(name: "name"), call);
       });
       peer!.on<DataConnection>("connection").listen((event) async {
-        DBProvider.db.setUserOnlineOrLastSeen(user, true);
-
-        showSnackbar("${event.peer} is connected ..");
-        dataConnection = event;
-        bool isConnected = connectedPeers.contains(dataConnection!.peer);
-
-        !isConnected
-            ? connectedPeers.add(dataConnection!.peer)
-            : dataConnection!.close();
-
-        dataConnection!.on("data").listen((data) {
-          recievedData(data);
-        });
-
-        dataConnection!.on("binary").listen((data) {});
-
-        dataConnection!.on("close").listen((data) {
-          DBProvider.db.setUserOnlineOrLastSeen(user, false);
-
-          showSnackbar("${event.peer} is disconnected ..");
-
-          connectedPeers.remove(dataConnection!.peer);
-        });
+        User user = await DBProvider.db.getUser(event.peer);
+        _handleConnection(user);
       });
     } catch (e) {
       showSnackbar(e.toString());
@@ -64,7 +43,7 @@ var to=User(name: "name").obs;
   }
 
   Future<void> connect(String peer) async {
-    User user=await DBProvider.db.getUser(peer);
+    User user = await DBProvider.db.getUser(peer);
 
     bool isConnected = connectedPeers.contains(peer);
     if (isConnected) {
@@ -72,30 +51,20 @@ var to=User(name: "name").obs;
 
       showSnackbar("$peer is Connected");
     } else {
-      showSnackbar("Connecting to $peer");
-
       try {
         dataConnection = PeerClient.client.peer!.connect(peer);
+        showSnackbar("Connecting to $peer");
         dataConnection!.on("open").listen((event) {
-          DBProvider.db.setUserOnlineOrLastSeen(user, true);
-
-          connectedPeers.add(peer);
-          connectedPeers = connectedPeers.toSet().toList();
-
-          dataConnection!.on("close").listen((event) {
-            DBProvider.db.setUserOnlineOrLastSeen(user, false);
-
-            connectedPeers.remove(peer);
-          });
-          dataConnection!.on("data").listen((data) => recievedData(data));
-          dataConnection!.on("binary").listen((data) {});
+          _handleConnection(user);
         });
         dataConnection!.on("close").listen((event) {
           DBProvider.db.setUserOnlineOrLastSeen(user, false);
-
+          showSnackbar("Unable to connect to $peer");
           connectedPeers.remove(peer);
         });
       } catch (e) {
+        showSnackbar("Unable to connect to $peer \n $e");
+
         showSnackbar(e.toString());
       }
     }
@@ -122,7 +91,6 @@ var to=User(name: "name").obs;
         showSnackbar(e.toString());
       }
     } else {
-
       // await DBProvider.db.addMessage(message, false);
       // await DBProvider.db.listMessages();
       await connect(message.channel!);
@@ -141,5 +109,20 @@ var to=User(name: "name").obs;
     NotificationController.notificationController
         .showNotificationWithActions(message);
     // previeusMessage = data;
+  }
+
+  void _handleConnection(User user) {
+    DBProvider.db.setUserOnlineOrLastSeen(user, true);
+
+    connectedPeers.add(user.uid!);
+    connectedPeers = connectedPeers.toSet().toList();
+
+    dataConnection!.on("close").listen((event) {
+      DBProvider.db.setUserOnlineOrLastSeen(user, false);
+
+      connectedPeers.remove(peer);
+    });
+    dataConnection!.on("data").listen((data) => recievedData(data));
+    dataConnection!.on("binary").listen((data) {});
   }
 }

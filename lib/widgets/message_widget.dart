@@ -22,6 +22,8 @@ Widget myMessage(Message message, bool isMe, size) {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(message.content,
+                  style: const TextStyle(color: Colors.black, fontSize: 16)),
               Visibility(visible: isMe, child: checkIfSentWidget(message)),
               Text(amOrPm(message.sent_at.toString(), false),
                   style: const TextStyle(color: Colors.grey, fontSize: 10)),
@@ -33,8 +35,7 @@ Widget myMessage(Message message, bool isMe, size) {
                   visible: false,
                   child: Container(),
                 ),
-          Text(message.content,
-              style: const TextStyle(color: Colors.black, fontSize: 16)),
+
         ],
       ),
     ),

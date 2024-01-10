@@ -90,7 +90,7 @@ var to=PeerClient.client.to;
   Widget build(BuildContext context) {
     Size? size = MediaQuery.maybeOf(context)?.size;
     var messagesModel = Get.put(MessagesModel()).messages;
-
+print(PeerClient.client.to.value.status);
     return Scaffold(
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
@@ -108,9 +108,9 @@ var to=PeerClient.client.to;
                         Text(
                         to.value.name,
                         ),
-                    Obx(() =>    Text(
+                    Obx(() => to.value.status!=null?   Text(
                       to.value.status!/* !="online"?"Last seen ${to.value.status}":"Online"*/,
-                        )),
+                        ):Container()),
                       ],
                     )),
               ],
@@ -121,11 +121,11 @@ var to=PeerClient.client.to;
                     onPressed: () => move(
                           context,
                           true,
-                          Container(),
+                      const CallScreen(isVideo: false,isCallRec: false,),
                         ),
                     icon: const Icon(Icons.call)),
                 IconButton(
-                    onPressed: () => move(context, true, CallScreen(isVideo: true,isCallRec: false,)),
+                    onPressed: () => move(context, true, const CallScreen(isVideo: true,isCallRec: false,)),
                     icon: const Icon(Icons.video_call))
               ],
             )
@@ -215,22 +215,22 @@ var to=PeerClient.client.to;
                       )),
                   Row(
                     children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              emojiShowing = !emojiShowing;
-                            });
-                          },
-                          icon: const Icon(
-                            Icons.emoji_emotions,
-                          ),
-                        ),
-                      ),
+                      // Material(
+                      //   color: Colors.transparent,
+                      //   child: IconButton(
+                      //     onPressed: () {
+                      //       setState(() {
+                      //         emojiShowing = !emojiShowing;
+                      //       });
+                      //     },
+                      //     icon: const Icon(
+                      //       Icons.emoji_emotions,
+                      //     ),
+                      //   ),
+                      // ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          padding: const EdgeInsets.all( 8.0),
                           child: TextField(
                               onSubmitted: ((value) => _sendMessage),
                               controller: _messageController,
@@ -263,12 +263,12 @@ var to=PeerClient.client.to;
                   ),
                 ],
               )),
-          Offstage(
-              offstage: !emojiShowing,
-              child: SizedBox(
-                height: size.height / 4,
-                child: Container(),
-              )),
+          // Offstage(
+          //     offstage: !emojiShowing,
+          //     child: SizedBox(
+          //       height: size.height / 4,
+          //       child: Container(),
+          //     )),
         ],
       ),
     );

@@ -202,6 +202,7 @@ $messagesTable
       WHERE id = ?
       ''', [value, user.id]);
     if(PeerClient.client.to.value.id==user.id){
+      user.status=value;
       PeerClient.client.to.value=user;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:chat/modules/show_snackbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -11,7 +12,9 @@ import '../widgets/daraggable_widget.dart';
 class CallScreen extends StatefulWidget {
   const CallScreen({
     super.key,
-    required this.isVideo, required this.isCallRec, this.call,
+    required this.isVideo,
+    required this.isCallRec,
+    this.call,
   });
 
   final bool isVideo;
@@ -37,7 +40,7 @@ class _CallScreenState extends State<CallScreen> {
   void initState() {
     isVideo = widget.isVideo;
     _localRenderer.initialize();
-_remoteRenderer.initialize();
+    _remoteRenderer.initialize();
     makeDevicesReady();
     loadDevices();
 
@@ -46,6 +49,9 @@ _remoteRenderer.initialize();
 
   List<MediaDeviceInfo> get videoInputs => _mediaDevicesList!
       .where((device) => device.kind == 'videoinput')
+      .toList();
+  List<MediaDeviceInfo> get audioOutputs => _mediaDevicesList!
+      .where((device) => device.kind == 'audiooutput')
       .toList();
   Future<void> loadDevices() async {
     if (WebRTC.platformIsAndroid || WebRTC.platformIsIOS) {
@@ -63,27 +69,29 @@ _remoteRenderer.initialize();
     setState(() {
       _mediaDevicesList = devices;
     });
+    print(audioOutputs.length.toString() +
+        "-------------------------------------------------------------");
   }
 
   @override
   void dispose() {
-_hangUp(isVideo);
+    _hangUp();
     super.dispose();
   }
 
-  void _hangUp(bool isVideo) async {
+  void _hangUp() async {
     try {
-      _localRenderer.dispose();
-      _localRenderer.srcObject!.dispose();
-      _remoteRenderer.dispose();
-      navigator.mediaDevices.ondevicechange = null;
-      Navigator.of(context).pop();
-      _localStream?.getTracks().forEach((track) => track.stop());
-
       _localRenderer.srcObject = null;
-
+      _remoteRenderer.srcObject=null;
+      await _localRenderer.dispose();
+      await _remoteRenderer.dispose();
+       // navigator.mediaDevices.ondevicechange = null;
+      await Helper.clearAndroidCommunicationDevice();
+      Navigator.of(context).pop();
+      showSnackbar("HANGING UP >>>>>>>");
     } catch (e) {
-      print(e.toString());
+      showSnackbar(e.toString());
+      Navigator.of(context).pop();
     }
   }
 
@@ -96,20 +104,23 @@ _hangUp(isVideo);
 
     return Scaffold(
         body: Stack(
+      fit: StackFit.expand,
       children: [
-        largScreen(
-            context,
-            screenCase
-                ? localStreamWidget(context, ready, _localRenderer)
-                : remoteStramWidget(_remoteRenderer,inCall)),
-        GestureDetector(
-            onTap: () => _changeScreens(),
-            child: StatefulDragArea(
-                child: smallScreens(
-                    context,
-                    !screenCase
-                        ? localStreamWidget(context, ready, _localRenderer)
-                        : remoteStramWidget(_remoteRenderer,inCall)))),
+        if (isVideo)
+          largScreen(
+              context,
+              screenCase
+                  ? localStreamWidget(context, ready, _localRenderer)
+                  : remoteStramWidget(_remoteRenderer, inCall)),
+        if (isVideo)
+          GestureDetector(
+              onTap: () => _changeScreens(),
+              child: StatefulDragArea(
+                  child: smallScreens(
+                      context,
+                      !screenCase
+                          ? localStreamWidget(context, ready, _localRenderer)
+                          : remoteStramWidget(_remoteRenderer, inCall)))),
         Positioned(
             bottom: -10,
             child: SizedBox(
@@ -140,12 +151,12 @@ _hangUp(isVideo);
                           Icon(isVideo ? Icons.videocam : Icons.videocam_off)),
                   IconButton(
                       color: Colors.red,
-                      onPressed: () => _hangUp(isVideo),
+                      onPressed: () => _hangUp(),
                       icon: const Icon(Icons.call_end))
                 ],
               )),
             )),
-        const BackButton(),
+        // const BackButton(),
       ],
     ));
   }
@@ -156,34 +167,38 @@ _hangUp(isVideo);
     final mediaStream = await navigator.mediaDevices
         .getUserMedia({"video": isVideo, "audio": true});
     _localRenderer.srcObject = mediaStream;
+    !isVideo ? _localRenderer.audioOutput("0") : null;
     setState(() {
       ready = true;
     });
-  widget.isCallRec?recieve(mediaStream):call(mediaStream);
+
+    widget.isCallRec ? recieve(mediaStream) : call(mediaStream);
   }
-call(mediaStream){
-  final conn =PeerClient.client.peer!.call(PeerClient.client.to.value.uid!, mediaStream);
 
-  conn.on("close").listen((event) {
-    setState(() {
-      mediaStream.dispose();
-      inCall = false;
+  call(mediaStream) {
+    final conn = PeerClient.client.peer!
+        .call(PeerClient.client.to.value.uid!, mediaStream);
+
+    conn.on("close").listen((event) {
+      setState(() {
+        mediaStream.dispose();
+        inCall = false;
+      });
+      _hangUp();
     });
-    _hangUp(isVideo);
-  });
 
-  conn.on<MediaStream>("stream").listen((event) async{
-    _remoteRenderer.srcObject = event;
+    conn.on<MediaStream>("stream").listen((event) async {
+      _remoteRenderer.srcObject = event;
 
-    // print("-----------starting----------------------");
-    setState(() {
-      inCall = true;
-    });
-    // print("-----------ending------------$inCall----------");
+      // print("-----------starting----------------------");
+      setState(() {
+        inCall = true;
+      });
+      // print("-----------ending------------$inCall----------");
 /////////////////////////////////////////////////////////////////////////////////////
-  });
+    });
+  }
 
-}
   void _toggleVideoInput() async {
     _selectedVideoInputId =
         _selectedVideoInputId == _mediaDevicesList![0].deviceId
@@ -215,16 +230,16 @@ call(mediaStream){
   }
 
   recieve(MediaStream mediaStream) {
-   widget.call!.answer(mediaStream);
-   widget.call!.on("close").listen((event) {
-     setState(() {
-       mediaStream.dispose();
-       inCall = false;
-     });
-     _hangUp(isVideo);
-   });
+    widget.call!.answer(mediaStream);
+    widget.call!.on("close").listen((event) {
+      setState(() {
+        mediaStream.dispose();
+        inCall = false;
+      });
+      _hangUp();
+    });
 
-  widget.call!.on<MediaStream>("stream").listen((event) {
+    widget.call!.on<MediaStream>("stream").listen((event) {
       _remoteRenderer.srcObject = event;
 
       setState(() {
@@ -272,12 +287,14 @@ Widget localStreamWidget(
         );
 }
 
-Widget remoteStramWidget(RTCVideoRenderer remoteRenderer,bool inCall) {
-  return  !inCall? const Card(
-    color: Colors.pink,
-  ):RTCVideoView(
-    remoteRenderer,
-    mirror: true,
-    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-  );
+Widget remoteStramWidget(RTCVideoRenderer remoteRenderer, bool inCall) {
+  return !inCall
+      ? const Card(
+          color: Colors.pink,
+        )
+      : RTCVideoView(
+          remoteRenderer,
+          mirror: true,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+        );
 }
