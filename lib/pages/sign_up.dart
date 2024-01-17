@@ -4,7 +4,7 @@ import 'package:chat/pages/list_users.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
-import 'package:test_client/test_client.dart';
+import '../client/user.dart';
 import '../controllers/db_controller.dart';
 import '../controllers/signup_controller.dart';
 import '../main.dart';

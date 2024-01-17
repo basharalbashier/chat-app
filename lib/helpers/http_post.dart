@@ -1,10 +1,8 @@
 import 'package:chat/helpers/constant.dart';
 import 'package:chat/modules/show_snackbar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:test_client/test_client.dart';
 
 httpPostRequest(Map<String, dynamic> body) async {
   try {

@@ -1,14 +1,11 @@
-import 'package:chat/controllers/db_controller.dart';
 import 'package:chat/modules/peer_client.dart';
-import 'package:chat/modules/show_snackbar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:peerdart/peerdart.dart';
-import 'package:test_client/test_client.dart';
 
+import '../client/message.dart';
+import '../client/user.dart';
 import '../helpers/router.dart';
 import '../modules/message.dart';
 import '../widgets/message_widget.dart';

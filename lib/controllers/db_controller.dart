@@ -1,19 +1,20 @@
 import 'dart:io';
-import 'package:chat/helpers/http_post.dart';
-import 'package:chat/modules/message.dart';
-import 'package:chat/modules/show_snackbar.dart';
-import 'package:chat/modules/users.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:test_client/test_client.dart';
+import '../client/message.dart';
+import '../client/user.dart';
+import '../helpers/http_post.dart';
+import '../modules/message.dart';
 import '../modules/peer_client.dart';
+import '../modules/show_snackbar.dart';
+import '../modules/users.dart';
 import '../pages/list_users.dart';
 
 var _dx = Get.put(Channels());
 
-String usersTabeName = 'users';
+String usersTableName = 'users';
 String messagesTableName = 'messages';
 
 class DBProvider {
@@ -30,12 +31,12 @@ class DBProvider {
   }
 
   String createTableString =
-      'CREATE TABLE $usersTabeName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT,status TEXT)';
+      'CREATE TABLE $usersTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,uid Text, name TEXT, email TEXT,photoUrl TEXT,status TEXT)';
 
   String messagesTable =
       'CREATE TABLE $messagesTableName (id INTEGER PRIMARY KEY AUTOINCREMENT,channel TEXT,content TEXT,sender TEXT,sent_at TEXT,seen_at TEXT,isSent TEXT,replayto TEXT)';
 
-  initDB() async {
+  Future initDB() async {
     if (Platform.isAndroid || Platform.isIOS) {
       Directory documentsDirectory = await getApplicationDocumentsDirectory();
       String path = join(documentsDirectory.path, "chat.db");
@@ -70,12 +71,12 @@ $messagesTable
   Future<User> getMe() async {
     _dx.channels.clear();
     final db = await database;
-    var result = await db.rawQuery("SELECT * FROM $usersTabeName");
+    var result = await db.rawQuery("SELECT * FROM $usersTableName");
     if (result.isEmpty) return User(name: '');
     Map<String, dynamic> data = Map.of(result[0]);
-    var user = User.fromJson(data, Protocol());
+    var user = User.fromJson(data);
     for (var i in result) {
-      var user = User.fromJson(i, Protocol());
+      var user = User.fromJson(i);
       _dx.updateUsers(user);
     }
     await PeerClient.client.init(user);
@@ -86,11 +87,13 @@ $messagesTable
   Future<void> addUser(User user, bool isMe) async {
     final db = await database;
     try {
-      isMe ? await db.rawDelete("Delete from $usersTabeName WHERE id=1") : null;
+      isMe
+          ? await db.rawDelete("Delete from $usersTableName WHERE id=1")
+          : null;
 
       !isMe
           ? await db
-              .rawQuery("SELECT * FROM $usersTabeName")
+              .rawQuery("SELECT * FROM $usersTableName")
               .then((result) async {
               bool exist = false;
               for (var i in result) {
@@ -101,7 +104,7 @@ $messagesTable
               if (!exist) {
                 user.id = result.length + 1;
                 await db.rawInsert(
-                    "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+                    "INSERT Into $usersTableName (id,uid,name,email,photoUrl)"
                     " VALUES (?,?,?,?,?)",
                     [
                       user.id,
@@ -116,7 +119,7 @@ $messagesTable
 
       isMe
           ? await db.rawInsert(
-              "INSERT Into $usersTabeName (id,uid,name,email,photoUrl)"
+              "INSERT Into $usersTableName (id,uid,name,email,photoUrl)"
               " VALUES (?,?,?,?,?)",
               [1, user.uid, user.name, user.email, user.photoUrl])
           : null;
@@ -155,7 +158,7 @@ $messagesTable
       Map<String, dynamic> one = Map.of(i);
       var isThere = _dx.channels.where((p0) => p0.uid == one['channel']);
       if (isThere.isEmpty) {
-        var user = await fetchUser(one['channel']);
+        var user = await User.fetchUser(one['channel']);
         _dx.updateUsers(user);
         addUser(user, false);
       }
@@ -163,7 +166,7 @@ $messagesTable
       one['send_by'] = i['sender'];
       one['replayto'] =
           i['replayto'] == 'null' ? null : int.parse(i['replayto'].toString());
-      var message = Message.fromJson(one, Protocol());
+      var message = Message.fromJson(one);
       messagesModel.updateMessages(message);
       // var check =
       //     messages.where((element) => element.channel == message.channel);
@@ -187,9 +190,10 @@ $messagesTable
   Future<User> getUser(String uid) async {
     User user = User(name: "Someone");
     var db = await database;
-    var res = await db.query(usersTabeName, where: "uid = ?", whereArgs: [uid]);
+    var res =
+        await db.query(usersTableName, where: "uid = ?", whereArgs: [uid]);
 
-    user = User.fromJson(res.first, Protocol());
+    user = User.fromJson(res.first);
     return user;
   }
 
@@ -197,13 +201,13 @@ $messagesTable
     final db = await database;
     String value = isOnline ? "Online" : DateTime.now().toString();
     await db.rawUpdate('''
-      UPDATE $usersTabeName SET
+      UPDATE $usersTableName SET
      status = ?
       WHERE id = ?
       ''', [value, user.id]);
-    if(PeerClient.client.to.value.id==user.id){
-      user.status=value;
-      PeerClient.client.to.value=user;
+    if (PeerClient.client.to.value.id == user.id) {
+      user.status = value;
+      PeerClient.client.to.value = user;
     }
   }
   // showToast(a, e, la) {

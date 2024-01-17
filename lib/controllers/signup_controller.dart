@@ -3,7 +3,8 @@ import 'package:chat/helpers/constant.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:test_client/test_client.dart';
+
+import '../client/user.dart';
 
 class LoginController extends GetxController {
   final _googleSignIn = GoogleSignIn();

@@ -1,6 +1,7 @@
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
-import 'package:test_client/test_client.dart';
+
+import '../client/message.dart';
 
 class MessagesModel extends GetxController {
   RxList<Message> messages = List<Message>.from([]).obs;

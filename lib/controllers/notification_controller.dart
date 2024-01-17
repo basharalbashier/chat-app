@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:test_client/test_client.dart' as client;
 import 'package:chat/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:test_client/test_client.dart';
 
+import '../client/user.dart';
+import '../client/message.dart' as client;
 import 'db_controller.dart';
 
 class NotificationController {

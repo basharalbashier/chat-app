@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'modules/notification.dart';
 import 'pages/sign_up.dart';
 import 'theme.dart';
 
@@ -27,13 +28,81 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 }
 
 const String navigationActionId = 'id_3';
+  final StreamController<ReceivedNotification> didReceiveLocalNotificationStream =
+    StreamController<ReceivedNotification>.broadcast();
+    const String darwinNotificationCategoryText = 'textCategory';
 
+/// Defines a iOS/MacOS notification category for plain actions.
+const String darwinNotificationCategoryPlain = 'plainCategory';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+    final List<DarwinNotificationCategory> darwinNotificationCategories =
+      <DarwinNotificationCategory>[
+    DarwinNotificationCategory(
+      darwinNotificationCategoryText,
+      actions: <DarwinNotificationAction>[
+        DarwinNotificationAction.text(
+          'text_1',
+          'Action 1',
+          buttonTitle: 'Send',
+          placeholder: 'Placeholder',
+        ),
+      ],
+    ),
+    DarwinNotificationCategory(
+      darwinNotificationCategoryPlain,
+      actions: <DarwinNotificationAction>[
+        DarwinNotificationAction.plain('id_1', 'Action 1'),
+        DarwinNotificationAction.plain(
+          'id_2',
+          'Action 2 (destructive)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.destructive,
+          },
+        ),
+        DarwinNotificationAction.plain(
+          navigationActionId,
+          'Action 3 (foreground)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.foreground,
+          },
+        ),
+        DarwinNotificationAction.plain(
+          'id_4',
+          'Action 4 (auth required)',
+          options: <DarwinNotificationActionOption>{
+            DarwinNotificationActionOption.authenticationRequired,
+          },
+        ),
+      ],
+      options: <DarwinNotificationCategoryOption>{
+        DarwinNotificationCategoryOption.hiddenPreviewShowTitle,
+      },
+    )
+  ];
+   final DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+    onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {
+      didReceiveLocalNotificationStream.add(
+        ReceivedNotification(
+          id: id,
+          title: title,
+          body: body,
+          payload: payload,
+        ),
+      );
+    },
+    notificationCategories: darwinNotificationCategories,
+  );
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/launcher_icon');
-  const InitializationSettings initializationSettings = InitializationSettings(
+  final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
+        iOS: initializationSettingsDarwin,
+
   );
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,

@@ -1,16 +1,14 @@
-import 'dart:io';
 
-import 'package:chat/controllers/db_controller.dart';
-import 'package:chat/helpers/http_get.dart';
-import 'package:chat/modules/peer_client.dart';
-import 'package:chat/modules/show_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:test_client/test_client.dart';
-import '../controllers/signup_controller.dart';
+import '../client/message.dart';
+import '../client/user.dart';
+import '../controllers/db_controller.dart';
 import '../helpers/router.dart';
+import '../modules/peer_client.dart';
+import '../modules/show_snackbar.dart';
 import '../modules/users.dart';
 import 'chat_screen.dart';
 
@@ -204,7 +202,7 @@ class _ListUsersState extends State<ListUsers> {
   }
 
   void _fetchAndStartChat(String? code) async{
-    var user = await fetchUser(code!);
+    var user = await User.fetchUser(code!);
     PeerClient.client.to.value = user;
     move(
       context,
@@ -216,12 +214,4 @@ class _ListUsersState extends State<ListUsers> {
   }
 }
 
-Future<User> fetchUser(String id) async =>
-    await httpGetRequest(id).then((value) {
-      value['uid'] = value['id'].toString();
-      value['id'] = null;
-      value['status'] = value['status'].toString();
-      var user = User.fromJson(value, Protocol());
-      DBProvider.db.addUser(user, false);
-      return user;
-    });
+

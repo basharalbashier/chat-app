@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:test_client/test_client.dart';
+import '../client/message.dart';
 import '../modules/message.dart';
 
 Message getReplay(int id) {

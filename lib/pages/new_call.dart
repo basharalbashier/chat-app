@@ -1,12 +1,9 @@
-import 'package:chat/pages/awn_call.dart';
 import 'package:chat/pages/call_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:peerdart/peerdart.dart';
-import 'package:test_client/test_client.dart';
 
+import '../client/user.dart';
 import '../main.dart';
-import '../modules/peer_client.dart';
 
 void showCallDialog(User user, call) {
   showDialog(

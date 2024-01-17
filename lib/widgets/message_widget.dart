@@ -1,8 +1,7 @@
 import 'package:chat/modules/peer_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_bubble/chat_bubble.dart';
-import 'package:test_client/test_client.dart';
-
+import '../client/message.dart';
 import '../helpers/format_time.dart';
 import 'replay_message_widget.dart';
 
